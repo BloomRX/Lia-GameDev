@@ -32,6 +32,13 @@ e a política correta caso algo venha a ser incluído no futuro.
 - Nenhuma chamada a modelos, APIs, MCP, Colab, ngrok ou serviço pago/externo faz
   parte desta Etapa 0. Nenhuma chave, token ou credencial está incluída.
 
+## Dependências de execução (runtime)
+
+A aplicação (`app/`) usa **apenas a biblioteca padrão do Python** (módulo
+`http.server` para o servidor e JS vanilla na interface). **Nenhuma dependência de
+terceiros é instalada ou exigida** para rodar a alpha. Isso minimiza instalação para
+o iniciante e mantém o app auditável.
+
 ## Licença deste projeto
 
 O código e a documentação próprios da Lia GameDev são distribuídos sob **MIT**

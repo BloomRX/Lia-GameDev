@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Ambiente local da aplicação (projetos do Dev ficam fora do repo por padrão)
+LiaGameDevProjects/
