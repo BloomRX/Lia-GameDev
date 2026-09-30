@@ -1,4 +1,4 @@
-# Guia rápido do Dev — Lia GameDev (alpha)
+# Guia rápido do Dev — Lia Studio (alpha)
 
 Este guia cobre os fluxos principais pela interface. Não exige conta externa.
 

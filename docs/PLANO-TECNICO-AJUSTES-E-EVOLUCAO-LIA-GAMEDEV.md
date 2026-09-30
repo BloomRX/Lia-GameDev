@@ -1,8 +1,8 @@
-# Lia GameDev — Plano Técnico de Ajustes, Correções e Evolução
+# Lia Studio — Plano Técnico de Ajustes, Correções e Evolução
 
 > **Documento de trabalho para o agente de desenvolvimento**  
 > **Base auditada:** branch `arena/01a0ec59-lia-gamedev`  
-> **Objetivo:** corrigir o que já existe, reorganizar o núcleo quando necessário e preparar a Lia GameDev para evoluir de uma alpha demonstrativa para o produto desktop real.  
+> **Objetivo:** corrigir o que já existe, reorganizar o núcleo quando necessário e preparar a Lia Studio para evoluir de uma alpha demonstrativa para o produto desktop real.  
 > **Escopo deste documento:** arquitetura, código, modelo de dados, execução, skills, QA, segurança local, provedores, engines, testes, empacotamento e integração futura. **A discussão de visual/UI estética fica para uma etapa posterior e não deve ser usada como motivo para reescrever a interface agora.**
 
 ---
@@ -29,15 +29,15 @@ Quando uma mudança estrutural tornar uma decisão anterior obsoleta, o agente d
 
 A branch atual já possui uma **alpha funcional de prova de conceito**, com backend local, persistência em arquivos, preparação de projeto, planejamento, tarefas, execução simulada, QA, release e uma SPA navegável.
 
-O problema é que a implementação atual ainda representa principalmente um **gerenciador local de projeto com execução simulada**, e não o núcleo completo da futura **Lia GameDev como ferramenta de desenvolvimento de jogos**.
+O problema é que a implementação atual ainda representa principalmente um **gerenciador local de projeto com execução simulada**, e não o núcleo completo da futura **Lia Studio como ferramenta de desenvolvimento de jogos**.
 
 Isso é importante porque o objetivo final é maior:
 
 ```text
-Lia GameDev standalone
+Lia Studio standalone
     Usuário
        ↓
-   Lia GameDev
+   Lia Studio
        ↓
  Orquestração técnica
        ↓
@@ -65,12 +65,12 @@ Lia Waifu
    ↓
 Contexto pessoal + convivência + personalidade
    ↓
-Lia GameDev
+Lia Studio
    ↓
 Execução técnica do projeto
 ```
 
-A Lia GameDev **não deve depender da Lia Waifu** para existir, e não deve armazenar personalidade ou memórias pessoais da convivência.
+A Lia Studio **não deve depender da Lia Waifu** para existir, e não deve armazenar personalidade ou memórias pessoais da convivência.
 
 ---
 
@@ -78,7 +78,7 @@ A Lia GameDev **não deve depender da Lia Waifu** para existir, e não deve arma
 
 ## 2.1 Independência do GameDev
 
-A Lia GameDev precisa funcionar como produto próprio.
+A Lia Studio precisa funcionar como produto próprio.
 
 Ela deve possuir seu próprio:
 
@@ -511,7 +511,7 @@ O produto final deve ter uma estrutura compatível com um aplicativo desktop Win
 Direção recomendada:
 
 ```text
-Lia GameDev
+Lia Studio
 ├─ desktop/
 │  ├─ Electron Main
 │  ├─ Preload / IPC
@@ -2256,7 +2256,7 @@ Sem afirmação falsa de sucesso
 
 # 63. Critérios de arquitetura final
 
-A Lia GameDev estará estruturalmente madura quando:
+A Lia Studio estará estruturalmente madura quando:
 
 - pode rodar sem Lia Project;
 - pode ser executada como desktop Windows;

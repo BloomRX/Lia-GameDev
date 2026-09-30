@@ -21,7 +21,7 @@
 >
 > ## Corrigir os metadados herdados, sem ampliar o escopo
 >
-> O README recebido indica que o repositório novo contém só README, LICENSE e THIRD_PARTY_NOTICES e que Mr. Mak é referência externa. O `THIRD_PARTY_NOTICES.md` recebido ainda menciona itens que não aparecem na árvore limpa: `img2threejs`, lockfiles/dependências JS/Rust, imagens Arachne/Lia GameDev 64, renders Unity e caminhos `docs/assets/...`. **Não mantenha avisos falsos.** Compare os avisos com os arquivos efetivamente presentes:
+> O README recebido indica que o repositório novo contém só README, LICENSE e THIRD_PARTY_NOTICES e que Mr. Mak é referência externa. O `THIRD_PARTY_NOTICES.md` recebido ainda menciona itens que não aparecem na árvore limpa: `img2threejs`, lockfiles/dependências JS/Rust, imagens Arachne/Lia Studio 64, renders Unity e caminhos `docs/assets/...`. **Não mantenha avisos falsos.** Compare os avisos com os arquivos efetivamente presentes:
 >
 > - manter MIT para o código e documentação próprios que a licença cobre;
 > - declarar que, no estado inicial, não há código/skills/assets do Mr. Mak incluídos se a árvore confirmar isso;
@@ -32,12 +32,12 @@
 >
 > ## Decisões de produto aprovadas
 >
-> - Lia GameDev será ferramenta autônoma para Windows, distribuída como executável. Poderá ser usada por humanos e chamada futuramente pela Lia Waifu.
+> - Lia Studio será ferramenta autônoma para Windows, distribuída como executável. Poderá ser usada por humanos e chamada futuramente pela Lia Waifu.
 > - Só escolhas visuais selecionadas do launcher Waifu podem ser compartilhadas; não compartilhar personalidade nem memórias pessoais.
 > - Dados de projeto local-first; núcleo agnóstico a engine; versão completa cobre todo o ciclo de desenvolvimento. A primeira slice não reduz essa meta.
 > - Rotas gratuitas locais e em nuvem serão preparadas no produto futuro, com guias simples, escolha de uma ou ambas. Serviços pagos serão opcionais e desligados por padrão. Nesta tarefa, não conectar nem chamar modelos, API, MCP, Colab ou ngrok.
 > - O Dev mantém direção criativa e pode pausar/ajustar tarefas. Ações pagas, destrutivas, externas ou irreversíveis precisam de aprovação.
-> - Lia Waifu mantém memória pessoal; Lia GameDev mantém dados técnicos por projeto. Uma lição só vira skill reutilizável após evidência e revisão.
+> - Lia Waifu mantém memória pessoal; Lia Studio mantém dados técnicos por projeto. Uma lição só vira skill reutilizável após evidência e revisão.
 >
 > ## Escopo de implementação — uma única skill
 >

@@ -1,4 +1,4 @@
-# Matriz de funcionalidades — Lia GameDev (alpha, 2026-09-29)
+# Matriz de funcionalidades — Lia Studio (alpha, 2026-09-29)
 
 Legenda: ✅ implementado e testado · 🟡 implementado, não testado · 🔶 parcial ·
 🟣 simulado · ⬜ não implementado · 🚫 bloqueado

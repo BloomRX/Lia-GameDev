@@ -1,7 +1,7 @@
 "use strict";
 
 /* ============================================================
-   Lia GameDev — SPA local (vanilla JS, sem build)
+   Lia Studio — SPA local (vanilla JS, sem build)
    ============================================================ */
 
 const view = document.getElementById("view");
@@ -428,7 +428,7 @@ function projectConfig(pid, data) {
       <div class="tag">Atual: ${esc(eng.name||"—")} · verificado: ${eng.verified? "sim":"não"}</div>
     </div>
     <div class="card"><h3>Provedores de IA (offline / simulado)</h3>
-      <div class="banner warn">${esc((prov.message||"Sem conexão.").replace("Lia GameDev","Lia GameDev"))}</div>
+      <div class="banner warn">${esc(prov.message||"Sem conexão.")}</div>
       <p class="muted">Modo: <b>${esc(prov.mode||"offline")}</b> · conectado: <b>${prov.connected?"sim":"não"}</b> · simulado: <b>${prov.simulated?"sim":"não"}</b></p>
       <p>Veja e configure provedores em <a href="#/config">Configurações globais</a>.</p>
     </div>`;

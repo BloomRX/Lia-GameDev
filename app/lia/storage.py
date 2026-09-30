@@ -1,4 +1,4 @@
-"""Armazenamento local-first da Lia GameDev.
+"""Armazenamento local-first da Lia Studio.
 
 Tudo é salvo em arquivos legíveis no computador do Dev. Nenhum dado sai da máquina
 por padrão. O local dos projetos é configurável (env LIA_PROJECTS_DIR) e exportável.

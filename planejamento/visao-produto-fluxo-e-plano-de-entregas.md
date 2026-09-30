@@ -1,4 +1,4 @@
-# Lia GameDev — visão de produto, fluxo e plano de entregas
+# Lia Studio — visão de produto, fluxo e plano de entregas
 
 **Versão de planejamento:** 0.1 — rascunho para revisão, não especificação de implementação.
 
@@ -6,22 +6,22 @@
 
 ## 1. Visão em uma frase
 
-**Lia GameDev é a área técnica da Lia para ajudar uma pessoa — inclusive sem experiência de programação — a preparar, construir, testar, documentar e retomar projetos de jogos com agentes supervisionáveis, sem substituir a direção criativa do Dev.**
+**Lia Studio é a área técnica da Lia para ajudar uma pessoa — inclusive sem experiência de programação — a preparar, construir, testar, documentar e retomar projetos de jogos com agentes supervisionáveis, sem substituir a direção criativa do Dev.**
 
-A Lia GameDev é uma ferramenta independente, utilizável diretamente por pessoas que nunca usaram a Lia Waifu. Também poderá ser chamada pela Lia Waifu como ferramenta técnica. Para manter a marca, pode compartilhar escolhas visuais específicas do launcher da Waifu (por exemplo, elementos de identidade visual aprovados), mas não personalidade de convivência nem memórias pessoais. O método documental do GameDevPipeline é usado na Etapa 0; não é o nome do produto nem uma fase de implementação.
+A Lia Studio é uma ferramenta independente, utilizável diretamente por pessoas que nunca usaram a Lia Waifu. Também poderá ser chamada pela Lia Waifu como ferramenta técnica. Para manter a marca, pode compartilhar escolhas visuais específicas do launcher da Waifu (por exemplo, elementos de identidade visual aprovados), mas não personalidade de convivência nem memórias pessoais. O método documental do GameDevPipeline é usado na Etapa 0; não é o nome do produto nem uma fase de implementação.
 
 ## 2. Requisitos confirmados pelo Dev
 
-- A Lia GameDev é uma ferramenta própria, autônoma para uso humano, que também poderá ser usada/chamada pela Lia Waifu como capacidade técnica.
-- Reaproveitar apenas as escolhas artísticas do launcher da Lia Waifu necessárias à continuidade da marca; manter personalidade de convivência e memórias pessoais fora da Lia GameDev.
-- Manter separadas as memórias pessoais/de convivência da Lia Waifu e as memórias técnicas de cada projeto da Lia GameDev.
+- A Lia Studio é uma ferramenta própria, autônoma para uso humano, que também poderá ser usada/chamada pela Lia Waifu como capacidade técnica.
+- Reaproveitar apenas as escolhas artísticas do launcher da Lia Waifu necessárias à continuidade da marca; manter personalidade de convivência e memórias pessoais fora da Lia Studio.
+- Manter separadas as memórias pessoais/de convivência da Lia Waifu e as memórias técnicas de cada projeto da Lia Studio.
 - A versão completa pretendida cobre o ciclo de desenvolvimento de jogos; slices de construção menores não reduzem o escopo final.
 - O usuário escolheu manter MIT para código/documentação de software: terceiros podem fazer forks e modificar suas próprias cópias. Nome, personagem Lia, identidade visual, logos e assets de marca precisam de política separada; forks não devem se apresentar como oficiais nem reivindicar propriedade da personagem.
 - Uma regra contra denegrir a personagem não vem automaticamente da licença MIT; se desejada, precisa ser tratada em política de marca/comunidade separada e revisada juridicamente.
 - O usuário pretende apagar e recriar o repositório público `BloomRX/Lia-GameDev` com o mesmo nome para começar com histórico novo. A outra sessão não deve apagar nem recriar o repositório; o usuário fará isso.
 - A plataforma inicial será Windows, como aplicativo executável.
-- O núcleo da Lia GameDev deve ser agnóstico a engine; perfis e conectores de Godot, Unity, MonoGame ou outras engines entram como módulos.
-- Dados de jogo e registros da Lia GameDev serão local-first: no computador do usuário; Git/sincronização externa ficam opcionais e sob controle do Dev.
+- O núcleo da Lia Studio deve ser agnóstico a engine; perfis e conectores de Godot, Unity, MonoGame ou outras engines entram como módulos.
+- Dados de jogo e registros da Lia Studio serão local-first: no computador do usuário; Git/sincronização externa ficam opcionais e sob controle do Dev.
 - A Etapa 0 de cada jogo é uma preparação conversacional e documental baseada no `game-project-bootstrap` do GameDevPipeline. Ela registra ideia, GDD, escopo, referências, direção e decisões; **não implementa o jogo**.
 - O Dev mantém a direção criativa. O agente trabalha em tarefas delegadas e delimitadas; o Dev pode interromper, ajustar ou redirecionar.
 - Guardar processos, decisões, tarefas, testes e capturas para retomar trabalho e acompanhar aprendizado.

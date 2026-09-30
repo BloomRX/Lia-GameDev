@@ -86,7 +86,7 @@ def describe_runtime(storage: Storage) -> Dict[str, Any]:
         "connected": False,
         "simulated": True,
         "message": (
-            "Nenhuma inferência real está ativa. A Lia GameDev roda offline; provedores "
+            "Nenhuma inferência real está ativa. A Lia Studio roda offline; provedores "
             "são configuráveis mas permanecem 'não conectado'. Execuções de tarefa nesta "
             "entrega são SIMULADAS e claramente rotuladas."
         ),

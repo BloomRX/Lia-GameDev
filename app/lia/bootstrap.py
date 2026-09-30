@@ -223,7 +223,7 @@ _（a definir — [em aberto]）_
 > redistribuir. Se for incluir um asset de terceiro de fato, registre titularidade
 > e licença antes (fora da Etapa 0).
 
-## Política de assets (princípios da Lia GameDev)
+## Política de assets (princípios da Lia Studio)
 - **Local-first:** arquivos ficam no computador do Dev; sincronização externa é opcional.
 - **Nenhuma** geração/edição de mídia ou chamada a serviço pago nesta Etapa 0.
 - A identidade da Lia (nome, personagem, logo, visual) tem proteção de marca separada

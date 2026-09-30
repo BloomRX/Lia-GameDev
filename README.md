@@ -1,4 +1,4 @@
-# Lia GameDev
+# Lia Studio
 
 Ferramenta da Lia para ajudar uma pessoa — inclusive sem experiência de programação —
 a preparar, construir, testar, documentar e retomar projetos de jogos com agentes

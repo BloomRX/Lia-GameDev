@@ -1,4 +1,4 @@
-# Avisos de terceiros — Lia GameDev
+# Avisos de terceiros — Lia Studio
 
 **Estado inicial deste repositório:** nenhum código, skill ou asset de terceiros
 está incluído no momento. Esta seção existe para registrar referências externas
@@ -8,7 +8,7 @@ e a política correta caso algo venha a ser incluído no futuro.
 
 - **GameDevPipeline** — método de preparação da "Etapa 0" (`game-project-bootstrap`)
   e modelos de documento de projeto. É uma **referência de método** apenas.
-  Os templates desta skill da Lia GameDev foram **autorados originalmente** por
+  Os templates desta skill da Lia Studio foram **autorados originalmente** por
   este projeto, adaptando o método; nenhum arquivo do GameDevPipeline foi copiado
   ou redistribuído. Antes de redistribuir qualquer conteúdo desse projeto, confirme
   titularidade e permissão (a cópia local inspecionada não trazia `LICENSE` na raiz).
@@ -41,6 +41,6 @@ o iniciante e mantém o app auditável.
 
 ## Licença deste projeto
 
-O código e a documentação próprios da Lia GameDev são distribuídos sob **MIT**
+O código e a documentação próprios da Lia Studio são distribuídos sob **MIT**
 (vide `LICENSE`). A separação entre a licença de software (MIT) e a proteção de
 marca da Lia é intencional e documentada acima.

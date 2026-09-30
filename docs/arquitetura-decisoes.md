@@ -1,4 +1,4 @@
-# Arquitetura e decisões técnicas — Lia GameDev (alpha)
+# Arquitetura e decisões técnicas — Lia Studio (alpha)
 
 Data: 2026-09-29. Ambiente de build: Linux (sandbox). Destino final: Windows.
 

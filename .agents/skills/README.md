@@ -1,4 +1,4 @@
-# Skills da Lia GameDev
+# Skills da Lia Studio
 
 Convenção canônica das skills: **`.agents/skills/<id-da-skill>/`**, em formato
 compatível com Agent Skills (cada skill tem um `SKILL.md` com metadados simples e,

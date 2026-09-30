@@ -9,7 +9,7 @@ description: >
   alguém quiser começar, organizar ou documentar a ideia de um jogo — inclusive
   iniciantes sem experiência em programação. NÃO use para planejar módulos
   detalhados, executar tarefas de código, fazer handoff entre agentes ou retomar um
-  projeto já em andamento (essas são skills separadas da Lia GameDev, ainda não
+  projeto já em andamento (essas são skills separadas da Lia Studio, ainda não
   criadas nesta etapa).
 ---
 
@@ -146,7 +146,7 @@ sugerida sem virar o limite; nenhuma implementação de jogo.
 - Método adaptado de `game-project-bootstrap` do **GameDevPipeline** (referência externa).
 - Ideias de `plan` e `image-reference-workflow` do **Mr. Mak** (referência externa,
   não incluído).
-- Os **templates desta skill foram autorados originalmente** pela Lia GameDev; não
+- Os **templates desta skill foram autorados originalmente** pela Lia Studio; não
   copiamos arquivos do GameDevPipeline. Antes de redistribuir conteúdo de terceiros,
   confirme titularidade/permissão.
 - Código/documentação da Lia: **MIT**. Marca/identidade da Lia: política separada

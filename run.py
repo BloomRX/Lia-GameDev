@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Launcher da Lia GameDev.
+"""Launcher da Lia Studio.
 
 Inicia o servidor local (stdlib puro). Para abrir a interface, acesse o endereço
 impresso no terminal. Para empacotar no destino Windows, envolva este script com

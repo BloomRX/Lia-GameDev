@@ -1,4 +1,4 @@
-"""Testes do núcleo da Lia GameDev (stdlib only, offline, sem serviços externos).
+"""Testes do núcleo da Lia Studio (stdlib only, offline, sem serviços externos).
 
 Execute com:  python -m pytest tests/   ou   python tests/test_core.py
 """

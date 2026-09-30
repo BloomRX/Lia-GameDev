@@ -33,5 +33,5 @@ simples para quem nunca fez jogo:
 8. Prever DevTools proporcionais (deixado para skills futuras).
 9. **Não implementar o jogo** a menos que o Dev peça explicitamente em outro momento.
 
-> Observação de licença: os templates foram autorados pela Lia GameDev adaptando o
+> Observação de licença: os templates foram autorados pela Lia Studio adaptando o
 > método; nenhum arquivo do GameDevPipeline foi copiado. Mr. Mak é referência externa.

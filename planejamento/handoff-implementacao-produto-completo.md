@@ -1,4 +1,4 @@
-# Handoff — primeira implementação integrada da Lia GameDev
+# Handoff — primeira implementação integrada da Lia Studio
 
 > Documento criado em 2026-09-29 por solicitação do Dev, contendo o prompt de
 > autorização para a tentativa de implementação ampla do produto. O histórico da
@@ -8,14 +8,14 @@
 
 ---
 
-Handoff — primeira implementação integrada da Lia GameDev
+Handoff — primeira implementação integrada da Lia Studio
 
-Objetivo deste pedido: construir uma primeira versão integrada e testável da Lia GameDev, cobrindo o máximo possível do produto completo, para que o Dev avalie a própria interface e depois refine o resultado por partes. O Dev escolheu deliberadamente tentar o produto inteiro agora, em vez de parar após a skill lia-game-project-bootstrap.
+Objetivo deste pedido: construir uma primeira versão integrada e testável da Lia Studio, cobrindo o máximo possível do produto completo, para que o Dev avalie a própria interface e depois refine o resultado por partes. O Dev escolheu deliberadamente tentar o produto inteiro agora, em vez de parar após a skill lia-game-project-bootstrap.
 
 Isto substitui, para esta tarefa, o limite de escopo do handoff da primeira slice. Não apague esse histórico; use-o como registro do trabalho anterior. Este documento é a autorização de escopo para uma tentativa de implementação ampla. Não é autorização para apagar o repositório, alterar main, force-push, mesclar, publicar o aplicativo, gastar dinheiro, expor dados do usuário ou fazer ações externas/irreversíveis.
 
 1. Resultado esperado
-Entregar uma alpha integrada da Lia GameDev que o Dev consiga abrir e experimentar pela interface, não apenas documentação ou arquivos de skills. Tente implementar a experiência de ponta a ponta descrita neste handoff e nos documentos de visão. Não pare após a auditoria, o plano técnico ou um protótipo estático.
+Entregar uma alpha integrada da Lia Studio que o Dev consiga abrir e experimentar pela interface, não apenas documentação ou arquivos de skills. Tente implementar a experiência de ponta a ponta descrita neste handoff e nos documentos de visão. Não pare após a auditoria, o plano técnico ou um protótipo estático.
 
 O Dev quer avaliar o resultado por partes depois. Portanto:
 
@@ -45,7 +45,7 @@ este handoff e todos os documentos/skills presentes no repositório.
 Se houver conflito entre uma decisão confirmada e uma proposta antiga, preservar a decisão confirmada e registrar a divergência. Se faltar detalhe reversível, escolher uma solução técnica simples, explicar a escolha em docs/decisions/ (ou local equivalente) e continuar; não transformar pendências de arquitetura em motivo para entregar somente um plano.
 
 3. Visão e decisões confirmadas
-A Lia GameDev é uma ferramenta independente para auxiliar uma pessoa — inclusive iniciante — a preparar, construir, testar, documentar, revisar e retomar projetos de jogos com agentes supervisionáveis. A versão completa pretendida cobre o ciclo de desenvolvimento, da ideia à preparação de build/release.
+A Lia Studio é uma ferramenta independente para auxiliar uma pessoa — inclusive iniciante — a preparar, construir, testar, documentar, revisar e retomar projetos de jogos com agentes supervisionáveis. A versão completa pretendida cobre o ciclo de desenvolvimento, da ideia à preparação de build/release.
 
 Manter estes requisitos:
 

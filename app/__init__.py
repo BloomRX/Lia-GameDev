@@ -1,1 +1,1 @@
-"""Lia GameDev — pacote da aplicação (backend stdlib + UI servida pelo server)."""
+"""Lia Studio — pacote da aplicação (backend stdlib + UI servida pelo server)."""

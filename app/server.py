@@ -1,4 +1,4 @@
-"""Servidor HTTP da Lia GameDev (stdlib puro, sem dependências de terceiros).
+"""Servidor HTTP da Lia Studio (stdlib puro, sem dependências de terceiros).
 
 Serve a interface (SPA em app/static) e a API JSON em /api. Tudo roda localmente;
 nenhuma chamada externa é feita. Pode ser envolvido por Tauri/Electron para o
@@ -217,7 +217,7 @@ class Handler(BaseHTTPRequestHandler):
         body = self._body
         try:
             if parts == ["api", "health"]:
-                return {"ok": True, "app": "Lia GameDev", "offline": True}, 200
+                return {"ok": True, "app": "Lia Studio", "offline": True}, 200
             if parts == ["api", "skill"]:
                 return {
                     "skill_exists": templates_loader.skill_exists(),
@@ -291,7 +291,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def run(host: str = "0.0.0.0", port: int = 8080) -> None:
     server = ThreadingHTTPServer((host, port), Handler)
-    print(f"Lia GameDev em http://{host}:{port}  (Ctrl+C para parar)")
+    print(f"Lia Studio em http://{host}:{port}  (Ctrl+C para parar)")
     print(f"Projetos locais em: {storage.projects_dir}")
     try:
         server.serve_forever()
