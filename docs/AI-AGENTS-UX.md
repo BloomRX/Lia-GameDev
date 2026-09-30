@@ -1,408 +1,393 @@
-# Lia Studio — AI Agents e participação no Projeto
+# Lia Studio — AI Agents, MCP, APIs e Ferramentas
 
-> **Complemento de UX/arquitetura**  
-> Agents não são apenas uma tela de configuração. Eles são participantes operacionais do projeto.
+> **Arquitetura de referência para Agents e integrações**
+>
+> Este documento foi revisado após estudar a arquitetura pública do Mr. Mak Workspace. A distinção fundamental é: **Agent, Skill, MCP, ferramenta, provider/modelo e Lia Copilot não são a mesma coisa.**
 
-## 1. Princípio
+## 1. Referência do Mr. Mak
 
-O Lia Studio deve tratar **AI Agents como recursos de primeira classe**.
+O Mr. Mak trabalha principalmente com CLIs de Agents existentes — Codex, Claude Code e Kimi — e abre sessões independentes desses programas. PowerShell aparece como terminal, não como AI Agent. O workspace detecta os executáveis disponíveis e inicia processos separados para cada runtime. citeturn0search0turn0search1
 
-A interface não deve reduzir Agents a:
+O Coordinator do Mr. Mak também é separado dos workers: ele gerencia chats independentes, enquanto o trabalho de projeto é delegado aos terminais. fileciteturn100file0
 
-> `Configurações → escolher modelo → salvar`
-
-A configuração existe, mas é apenas uma parte do ciclo.
-
-O conceito correto é:
-
-```text
-Agent
-  ↓
-Identidade + Skills + ferramentas + permissões
-  ↓
-Entrada no Projeto
-  ↓
-Participação em uma fase/área/tarefa
-  ↓
-Execução
-  ↓
-Resultado + evidência + logs
-  ↓
-Revisão humana
-```
-
-O usuário continua sendo o responsável por decisões importantes. Agents executam trabalho dentro de limites explícitos.
+**Lia Studio deve preservar essa separação.**
 
 ---
 
-# 2. Dois níveis de Agent
+# 2. Modelo conceitual
 
-## 2.1 Agent do Studio
+```text
+LIA STUDIO
+│
+├── Skills
+│     └── conhecimento / instruções / workflows
+│
+├── Agent Runtimes
+│     ├── Codex
+│     ├── Claude Code
+│     ├── Kimi
+│     └── futuros adapters
+│
+├── MCP Connections
+│     └── servidores que fornecem contexto e ferramentas
+│
+├── Providers / APIs
+│     └── modelos e serviços externos
+│
+├── Tools
+│     └── operações concretas disponíveis ao runtime
+│
+└── Lia Copilot / Coordinator
+      └── interação e orquestração voltada ao usuário
+```
 
-É uma definição reutilizável.
+Não criar uma abstração única chamada “Agent” que obrigue todas essas coisas a serem a mesma entidade.
+
+---
+
+# 3. Agent Runtime
+
+No MVP, **Agent** deve significar principalmente um runtime/cliente executor disponível no computador:
+
+- Codex;
+- Claude Code;
+- Kimi;
+- outros CLIs compatíveis no futuro.
+
+O Studio deve detectar se o runtime está instalado e permitir abrir/resumir sessões.
+
+O inventário do Mr. Mak faz exatamente essa separação: registra comando, disponibilidade e características do runtime; depois constrói o comando de execução para cada CLI. fileciteturn93file0
+
+## 3.1 Perfis especializados não são necessariamente Agents
+
+Podemos ter perfis como:
+
+- Gameplay;
+- QA;
+- Build;
+- Documentation;
+- Art Pipeline.
+
+Mas isso deve ser tratado como **Role/Profile/Task Context**, não como um novo runtime.
+
+Exemplo:
+
+```text
+Runtime: Claude Code
+Profile: Gameplay
+Skills: Unreal Gameplay + Save System
+MCP: Unreal + Git
+Permissões: conforme projeto
+        ↓
+Sessão de trabalho
+```
+
+Assim evitamos dezenas de “Agents” que na prática seriam apenas configurações diferentes do mesmo Codex/Claude/Kimi.
+
+---
+
+# 4. Skills
+
+Skill = conhecimento/instrução/workflow reutilizável.
+
+O Mr. Mak mantém Skills como arquivos locais; `.agents/skills` é a fonte mantida para Codex e `.claude/skills` contém cópias completas para Claude Code. Skills não instalam automaticamente ferramentas, autenticam providers ou conectam MCP. fileciteturn99file0
+
+No Lia Studio:
+
+```text
+Skill
+  ↓
+Agent Runtime recebe a Skill + contexto
+  ↓
+Executa
+```
+
+Uma Skill pode ser usada por vários runtimes e um runtime pode usar várias Skills.
+
+---
+
+# 5. MCP
+
+MCP é **camada de integração**, não Agent.
+
+O Mr. Mak começa com configuração MCP vazia e inspeciona fontes globais, específicas do projeto e plugins de diferentes clientes. Ele identifica origem, transporte, comando/endpoint, variáveis ausentes, aprovação e disponibilidade. fileciteturn89file0turn94file0
+
+Transportes suportados pela arquitetura do Mr. Mak incluem:
+
+```text
+stdio
+SSE
+Streamable HTTP
+```
+
+O Studio deve manter essa flexibilidade.
+
+### Regra importante
+
+> **MCP configurado ≠ MCP conectado à sessão atual.**
+
+O próprio Mr. Mak trata essa diferença explicitamente. fileciteturn100file0
+
+---
+
+# 6. Tools
+
+Tool = operação concreta disponibilizada ao runtime através de uma integração.
 
 Exemplos:
 
-- Unreal Gameplay Agent
-- Technical Designer Agent
-- QA Agent
-- Build/Release Agent
-- Documentation Agent
-- Art Pipeline Agent
-- Code Review Agent
-
-Um Agent pode existir independentemente de qualquer projeto.
-
-## 2.2 Agent do Projeto
-
-É uma instância/configuração do Agent aplicada a um projeto específico.
-
-Exemplo:
-
 ```text
-Agent global: Unreal Gameplay Agent
+Unreal MCP
+  ├── consultar editor
+  ├── alterar asset
+  └── executar operação
 
-Projeto: Relatos
-  └── Agent aplicado:
-      Unreal Gameplay Agent
-      Skills: Gameplay, Save System, UE Architecture
-      Ferramentas: Git, build, editor automation
-      Permissões: leitura + execução limitada
+Git
+  ├── status
+  ├── diff
+  └── commit
+
+Blender MCP
+  ├── consultar cena
+  └── modificar cena
 ```
 
-O projeto pode adaptar contexto, Skills, ferramentas e permissões sem alterar automaticamente a definição global do Agent.
+A UI deve mostrar **qual conexão/integrador fornece a Tool**, e não transformar cada Tool em um Agent.
 
 ---
 
-# 3. Agent não é necessariamente um modelo
+# 7. Providers e APIs
 
-Separar conceitualmente:
+Provider/API é outra camada.
 
-```text
-Agent
- ├── Papel / objetivo
- ├── Instruções
- ├── Skills
- ├── Ferramentas
- ├── Memória/contexto permitido
- ├── Permissões
- ├── Política de execução
- └── Provider / modelo
-```
+Pode fornecer:
 
-O modelo é um componente substituível.
+- LLM;
+- geração de imagem;
+- vídeo;
+- áudio;
+- outros serviços.
 
-Um Agent deve poder utilizar:
+O runtime pode usar seu próprio mecanismo de autenticação/modelo ou uma integração externa, conforme o Agent e a ferramenta suportarem.
 
-- modelo local;
-- modelo hospedado gratuito;
-- modelo em nuvem pago;
-- provider compatível configurado pelo usuário.
-
-A UI não deve presumir que um Agent é “GPT”, “Claude”, “Gemini” etc. O Agent é a função; o modelo é o motor configurável.
+O Lia Studio deve seguir a filosofia free-first: recursos locais e gratuitos são o caminho padrão quando viáveis; cloud/pago fica disponível como opção do usuário. O Mr. Mak também não embute contas dos providers: o usuário fornece as próprias instalações e contas. citeturn0search0turn0search4
 
 ---
 
-# 4. Como Agents entram em um projeto
+# 8. Global versus Projeto
 
-Ao abrir um projeto, deve existir uma área como:
+Separar claramente:
 
-```text
-PROJETO
-  Visão Geral
-  Tarefas
-  Documentos
-  Assets
-  QA
-  Builds
-  Agents
-  Skills
-```
-
-A tela de Agents do projeto deve responder:
-
-> **“Quais Agents estão trabalhando neste projeto e o que eles podem fazer?”**
-
-Não mostrar apenas configurações técnicas.
-
-Exemplo:
+## Configuração global do Studio
 
 ```text
-┌────────────────────────────────────────────────────┐
-│ AGENTS DO PROJETO                                  │
-│                                                    │
-│ ● Gameplay Agent          Ativo                   │
-│   Gameplay / C++ / UE                              │
-│   3 tarefas em execução                            │
-│                                                    │
-│ ● QA Agent                Disponível              │
-│   Testes / análise / relatórios                    │
-│                                                    │
-│ ○ Build Agent             Desativado              │
-│   Build / packaging / release                      │
-└────────────────────────────────────────────────────┘
+Agent Runtimes
+MCP Connections
+Providers/APIs
+Skills
 ```
+
+Pergunta respondida:
+
+> **“O que eu tenho disponível?”**
+
+## Contexto do projeto
+
+```text
+Projeto
+  ├── Runtime selecionado
+  ├── Profile/Role
+  ├── Skills autorizadas/relevantes
+  ├── MCPs permitidos
+  ├── Tools disponíveis
+  ├── Provider/modelo
+  └── permissões/contexto
+```
+
+Pergunta respondida:
+
+> **“O que este projeto está usando?”**
+
+O projeto deve declarar o que está autorizado/disponível, sem duplicar todas as configurações globais.
 
 ---
 
-# 5. Agents participam da pipeline
-
-A pipeline do projeto continua sendo:
-
-```text
-PREPARAÇÃO → MVP JOGÁVEL → PRODUÇÃO → FINALIZAÇÃO
-```
-
-Agents podem participar de uma ou várias fases.
-
-Exemplo:
-
-```text
-Preparação
-  └── Documentation Agent
-
-MVP
-  ├── Gameplay Agent
-  └── QA Agent
-
-Produção
-  ├── Gameplay Agent
-  ├── Content/Tools Agent
-  └── QA Agent
-
-Finalização
-  ├── QA Agent
-  └── Build Agent
-```
-
-A pipeline não deve virar uma lista de Agents. A pipeline continua sendo o eixo do projeto; Agents aparecem **dentro do contexto da fase**.
-
----
-
-# 6. Agents também entram em tarefas
-
-Uma tarefa pode indicar:
-
-```text
-Implementar sistema de inventário
-
-Responsável:
-  Gameplay Agent
-
-Skills:
-  Inventory Architecture
-  Unreal Gameplay Systems
-  Save System
-
-Estado:
-  Em execução
-
-Último resultado:
-  Implementação criada
-
-Revisão humana:
-  Necessária
-```
-
-Isso permite que o usuário veja **quem está fazendo o quê**.
-
----
-
-# 7. Lia e Agents são papéis diferentes
-
-A Lia não deve ser confundida automaticamente com todos os Agents.
-
-### Lia Copilot
-
-É a interface inteligente e contextual com o usuário.
-
-Ela pode:
-
-- explicar;
-- planejar;
-- sugerir;
-- coordenar;
-- chamar um Agent;
-- resumir resultados;
-- pedir aprovação;
-- apresentar conflitos.
-
-### Agents
-
-Executam papéis especializados.
+# 9. Execução de uma tarefa
 
 ```text
 Usuário
    ↓
 Lia Copilot
    ↓
-Orquestração
-   ├── Gameplay Agent
-   ├── QA Agent
-   ├── Build Agent
-   └── Documentation Agent
+Contexto do Projeto
+   ↓
+Runtime Agent
+   ↓
+Skills relevantes
+   ↓
+MCP / APIs / Tools permitidos
+   ↓
+Execução
+   ↓
+Resultado + arquivos + evidências + logs
+   ↓
+Lia resume
+   ↓
+Usuário revisa
 ```
 
-Isso deixa espaço para uma arquitetura futura em que a Lia coordena vários Agents sem obrigar que ela própria execute todas as tarefas.
-
----
-
-# 8. UX de execução
-
-Quando um Agent estiver trabalhando, o usuário deve conseguir ver:
-
-- tarefa atual;
-- fase do projeto;
-- Agent responsável;
-- Skill(s) utilizadas;
-- ferramentas utilizadas;
-- modelo/provider utilizado quando relevante;
-- progresso/estado;
-- logs resumidos;
-- arquivos alterados;
-- resultado;
-- necessidade de revisão/aprovação.
-
-Não expor logs técnicos gigantes como experiência principal. Deve existir uma visão resumida e uma opção para expandir detalhes.
-
----
-
-# 9. Human-in-the-loop
-
-Ações potencialmente destrutivas ou de alto impacto devem respeitar permissões e confirmação.
-
-Exemplos:
-
-- apagar arquivos;
-- modificar configuração crítica;
-- executar comandos perigosos;
-- alterar branch/repositório;
-- publicar release;
-- sobrescrever conteúdo;
-- modificar Skills globais.
-
-Fluxo preferencial:
+Isso é preferível a uma hierarquia fixa do tipo:
 
 ```text
-Agent propõe
-   ↓
-Lia explica
-   ↓
-Usuário aprova
-   ↓
-Agent executa
-   ↓
-Resultado registrado
+Lia → Gameplay Agent → MCP
 ```
 
-Permissões automáticas podem existir para ações seguras, mas devem ser explícitas e configuráveis.
+porque as integrações são capacidades reutilizáveis e podem ser compartilhadas por diferentes runtimes.
 
 ---
 
-# 10. Agents + Skills
+# 10. Coordinator versus Worker
 
-Skills são conhecimento reutilizável.
-
-Agents são executores especializados.
-
-A relação deve ser:
+A Lia Studio pode possuir um Coordinator/Copilot, mas ele não deve ser confundido com o Worker.
 
 ```text
-Skill
-  ↓
-Agent recebe Skill + contexto
-  ↓
-Agent executa
-  ↓
-Resultado
+Coordinator
+  = entende pedido, consulta contexto, gerencia sessão e apresenta resultado
+
+Worker Runtime
+  = executa trabalho real no projeto
 ```
 
-Uma Skill não deve ficar presa a um único Agent.
+O Mr. Mak usa exatamente essa separação: o Coordinator possui ferramentas de coordenação e os chats de Codex/Claude/Kimi continuam sendo sessões independentes. fileciteturn100file0
 
-Um Agent pode utilizar várias Skills.
-
-Uma mesma Skill pode ser utilizada por vários Agents.
+O Lia Studio pode evoluir essa arquitetura, mas a separação conceitual deve permanecer.
 
 ---
 
-# 11. Agents + memória do Lia Project
+# 11. Agents dentro da pipeline
 
-O Lia Studio deve funcionar sozinho.
-
-Se o Lia Project estiver conectado, a Lia pode trazer contexto de convivência, preferências e histórico permitido.
-
-Isso não deve transformar automaticamente esse contexto pessoal em memória operacional de todos os Agents.
-
-A ponte deve controlar o que é compartilhado:
+A pipeline permanece:
 
 ```text
-Lia Project
-  │
-  │ contexto autorizado
-  ▼
-Lia Copilot
-  │
-  │ contexto de trabalho necessário
-  ▼
-Agent
+PREPARAÇÃO → MVP JOGÁVEL → PRODUÇÃO → FINALIZAÇÃO
 ```
 
-Agents recebem apenas o contexto necessário para executar a tarefa.
+Não criar uma pipeline paralela de Agents.
 
----
-
-# 12. Interface de Agents
-
-A interface deve possuir pelo menos dois níveis:
-
-## Biblioteca/Configuração
-
-Para:
-
-- criar Agent;
-- editar identidade;
-- selecionar Skills;
-- configurar provider/modelo;
-- configurar ferramentas;
-- definir permissões;
-- testar;
-- versionar.
-
-## Participação no Projeto
-
-Para:
-
-- adicionar Agent ao projeto;
-- definir áreas/fases permitidas;
-- definir tarefas;
-- visualizar atividade;
-- revisar resultados;
-- pausar/remover Agent;
-- alterar permissões específicas do projeto.
-
-Esses dois espaços não devem ser confundidos.
-
----
-
-# 13. Agentes na Home
-
-A Home não precisa colocar Agents como um terceiro destino equivalente a Projeto e Skills.
-
-A entrada principal continua:
+Uma tarefa pode exibir:
 
 ```text
-Criar/Abrir Projeto
-Skills
+Implementar inventário
+
+Runtime: Claude Code
+Profile: Gameplay
+Skills: Inventory + UE Gameplay
+MCP: Unreal + Git
+Modelo: conforme configuração do runtime
+Estado: Em execução
 ```
 
-Agents podem ser acessados pela área de conhecimento/configuração do Studio e, principalmente, dentro do contexto de projeto.
-
-Isso evita transformar a Home em um painel administrativo.
+Assim o usuário entende **quem está executando, com quais capacidades e dentro de quais limites**.
 
 ---
 
-# 14. Regra de UX
+# 12. UX da área AI & Integrations
 
-> **Não mostre apenas “qual modelo está configurado”. Mostre “quem está trabalhando, em quê, usando quais capacidades, com quais limites e qual foi o resultado”.**
+A área administrativa/técnica pode ser organizada assim:
 
-Essa regra deve orientar qualquer futura tela de Agents.
+```text
+AI & INTEGRATIONS
+│
+├── Agent Runtimes
+│   ├── Detectados
+│   ├── Disponíveis
+│   └── Sessões
+│
+├── MCP Connections
+│   ├── Projeto
+│   ├── Global
+│   └── Plugins
+│
+├── Providers / APIs
+│   ├── Local
+│   ├── Gratuitos
+│   └── Pagos opcionais
+│
+└── Skills
+    ├── Biblioteca
+    └── Projeto
+```
+
+Não transformar tudo em uma única tela de “configuração de Agent”.
+
+---
+
+# 13. Segurança e credenciais
+
+O Mr. Mak não encaminha todo o ambiente para os workers. Ele encaminha apenas variáveis MCP explicitamente nomeadas e remove variáveis de identidade do host antes de iniciar os terminais independentes. fileciteturn93file0
+
+O Lia Studio deve seguir princípio semelhante:
+
+```text
+Credencial global
+   ↓
+integração autorizada
+   ↓
+sessão/runtime específico
+```
+
+Nunca:
+
+```text
+.env inteiro → todos os Agents
+```
+
+Nenhuma credencial deve aparecer em logs, Skills, reports ou cards de Workspace.
+
+---
+
+# 14. Free-first
+
+O Studio deve preservar a filosofia do Lia Project:
+
+- local primeiro quando viável;
+- modelos locais quando disponíveis;
+- providers gratuitos quando adequados;
+- cloud paga como opção;
+- nenhuma integração paga como requisito básico.
+
+Uma Skill não deve exigir automaticamente um provider pago.
+
+Um MCP pode ser local ou remoto.
+
+Um runtime pode depender de conta própria ou funcionar localmente, conforme sua implementação.
+
+---
+
+# 15. Nomenclatura oficial
+
+Para evitar confusão no código e na UI:
+
+| Termo | Significado |
+|---|---|
+| **Agent Runtime** | executor/cliente como Codex, Claude Code, Kimi |
+| **Profile / Role** | função de trabalho, como Gameplay ou QA |
+| **Skill** | conhecimento, instrução ou workflow reutilizável |
+| **MCP Connection** | conexão com um servidor MCP |
+| **Tool** | operação disponibilizada por uma integração |
+| **Provider** | serviço/modelo/API externo |
+| **Model** | modelo específico utilizado quando configurável |
+| **Session** | execução/conversa concreta de um runtime |
+| **Lia Copilot / Coordinator** | camada de interação e orquestração para o usuário |
+
+Não usar “Agent” para significar indiscriminadamente qualquer uma dessas entidades.
+
+---
+
+# 16. Regra final
+
+> **Não copie a aparência do Mr. Mak; copie a separação de responsabilidades.**
+>
+> O valor da referência está em manter Agent Runtime, Profile, Skill, MCP, Tool, Provider/API, Session e Coordinator independentes, conectando-os somente quando uma tarefa precisar.
+>
+> O Lia Studio acrescenta sua própria camada: Lia, pipeline de game development, contexto do projeto e filosofia free-first.
