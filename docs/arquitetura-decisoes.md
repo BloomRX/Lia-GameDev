@@ -233,8 +233,9 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   transação entre processos/discos; o erro de criação continua visível ao Dev.
 - Testes injetam falha antes/depois de gravar o índice e uma pasta modificada
   antes da falha. Esse ajuste de persistência não implementa Coordinator/Worker.
-  O contrato multiagente novo está refletido como decisões **pendentes** em
-  `DECISOES-PENDENTES-INTEGRACOES.md` (D4); não há delegação na Alpha.
+  O contrato Multi-Agent opcional foi definido depois em
+  `AI-MULTI-AGENT-CONTRACT.md` (D4 resolvida); segue desligado na Alpha, sem
+  delegação ou árvore fictícia de Sessions.
 
 ## Decisão 18 — Metadados de evidência estritos (2026-10-01)
 - `evidence.json` aceita somente os campos do registro manual local (ID, alvo por

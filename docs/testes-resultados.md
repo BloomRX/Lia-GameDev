@@ -77,8 +77,9 @@ não deixa pasta vazia órfã; falha após o índice já conter o projeto, se o 
 ficar ilegível ou se a pasta receber conteúdo preserva dados para revisão.
 `node tests/test_ui.cjs`,
 `python -m compileall -q app`, `node --check app/static/app.js` e
-`git diff --check` → **OK**. D4 documenta decisões Multi-Agent ainda abertas,
-sem implantar Orchestrator ou alterar Sessions. Sem teste de uso/Windows.
+`git diff --check` → **OK**. O contrato Multi-Agent foi definido depois em
+`AI-MULTI-AGENT-CONTRACT.md` (D4 resolvida), sem implantar Orchestrator ou
+alterar Sessions. Sem teste de uso/Windows.
 
 ### Validação semântica de evidências — 2026-10-01
 `python tests/test_core.py` → **99 testes OK**. Campos persistidos extras,
