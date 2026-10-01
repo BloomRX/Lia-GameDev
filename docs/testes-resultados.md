@@ -28,7 +28,7 @@ O resultado atualizado da suíte completa aparece abaixo.
 | Skill reuse: templates | skill existe e templates presentes | OK |
 
 ### Atualização automatizada de 2026-09-30
-`python tests/test_core.py` → **81 testes OK** (núcleo, API local, gates,
+`python tests/test_core.py` → **92 testes OK** (núcleo, API local, gates,
 schemas v1/v2, backup, corrupção do índice/JSON, restauração confirmada,
 exportação; dependências, IDs, QA, prévia sem execução, rejeição de publicação
 sem build e corpo JSON inválido; handoff com confirmação, IDs, reinício, proteção de links e detecção de fonte alterada; SHA-256 de arquivo local, alvo/QA por ID, isolamento de caminhos e integridade alterada/ausente; links e tipos inválidos em
@@ -36,12 +36,29 @@ Markdown/journal, serialização local de append, validação de wizard/plano, r
 400 e diagnóstico de integridade JSON/Markdown, recusa de pasta adulterada no índice;
 decisões com validação, revisão desatualizada, concorrência local, pré-verificação
 de JSON/Markdown e confirmação de substituição da projeção manual; diagnóstico
-semântico de decisões inválidas e restauração apenas de backup de decisões válido).
+semântico de decisões inválidas e restauração apenas de backup de decisões válido;
+Session do simulador após aprovação, prévia sem escrita, histórico local sem
+credenciais/permissões efetivas, API somente leitura, corrupção/recovery confirmado,
+histórico preservado após reset, gates não promovidos, sessão de outro projeto
+recusada no diagnóstico/recovery, campo Computer Use opcional retrolegível e
+perfil Unreal selecionável sem adapter real; preferências de provider rejeitam
+modo/provider/segredo inválidos sem escrita nem conexão e saúde/recovery conferem
+backup válido).
 `node tests/test_ui.cjs` → **OK** (prévia →
-aprovação, reset, dependências, handoff com prévia e confirmação, decisões com edição por revisão e confirmação antes de substituir Markdown manual, e registro de arquivo local sem upload). O cenário de desbloqueio
+aprovação, reset, dependências, handoff com prévia e confirmação, decisões com edição por revisão e confirmação antes de substituir Markdown manual, registro de arquivo local sem upload, Sessions simuladas recentes sem alegar
+validação e seletor de engine vindo do catálogo com Unreal não verificado). O cenário de desbloqueio
 injeta uma fixture com estados de execução/validação externa; **a aplicação não
 produz esses estados por simulação**. Testes automatizados não substituem teste
 humano em Windows nem teste completo no navegador.
+
+### Incremento automatizado de 2026-10-01
+`python tests/test_core.py` → **93 testes OK**. Handoff referencia somente ID,
+estados e data das Sessions simuladas da tarefa, não copia resultado bruto,
+rejeita a gravação com digest anterior e detecta alteração de `sessions.json`
+mesmo sem mudança no plano. Prévia de execução não envelhece o snapshot.
+`node tests/test_ui.cjs`, `node --check app/static/app.js`,
+`python -m compileall -q app` e `git diff --check` → **OK**.
+Sem testes de uso, Windows, engines ou provedores reais.
 
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
@@ -62,7 +79,8 @@ cria projeto de exemplo → `/` serve o HTML da interface. **Todos os passos OK.
 - Aba Release não oferece estado publicado/build gerado; apresenta declarações
   antigas como não verificadas.
 - Aba Handoff permite revisar uma prévia e confirma substituição; ao mudar fontes
-  o arquivo salvo aparece como desatualizado, sem publicar/envio automático.
+  (inclusive novas Sessions simuladas) o arquivo salvo aparece como desatualizado,
+  sem publicar/envio automático. Referências a Sessions não são evidência validada.
 - Aba Evidências registra hash de arquivo relativo sem enviar bytes; alteração
   e indisponibilidade aparecem, mas não alteram aprovação/execução.
 - Aba Configurações lista provedores com banner offline/simulado.

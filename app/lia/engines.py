@@ -1,7 +1,7 @@
 """Perfis de engine — arquitetura agnóstica, adaptadores claramente marcados.
 
-O núcleo da Lia não depende de engine. Estes perfis permitem configurar Godot,
-Unity, MonoGame ou um caminho genérico. NENHUMA integração real com engine foi
+O núcleo da Lia não depende de engine. Estes perfis permitem indicar Unreal,
+Godot, Unity, MonoGame ou um caminho genérico. NENHUMA integração real foi
 executada/verificada nesta entrega; os adaptadores concretos ficam como marcados
 'not_verified'.
 """
@@ -18,6 +18,13 @@ ENGINE_CATALOG = [
         "status": "supported",
         "verified": True,
         "note": "Caminho padrão. Não exige engine específica.",
+    },
+    {
+        "id": "unreal",
+        "name": "Unreal Engine",
+        "status": "not_verified",
+        "verified": False,
+        "note": "Perfil de planejamento apenas. Não detecta instalação/projeto, não executa editor, build ou testes; adapter e MCP não conectados.",
     },
     {
         "id": "godot",
@@ -56,8 +63,8 @@ def get_profile(storage: Storage, project_id: str) -> Dict[str, Any]:
 
 def set_profile(storage: Storage, project_id: str, engine_id: str) -> Dict[str, Any]:
     cat = {e["id"]: e for e in ENGINE_CATALOG}
-    if engine_id not in cat:
-        raise ValueError(f"engine inválida: {engine_id}")
+    if not isinstance(engine_id, str) or engine_id not in cat:
+        raise ValueError("engine inválida ou não catalogada")
     profile = {
         "id": engine_id,
         "name": cat[engine_id]["name"],

@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .storage import Storage
+from .storage import Storage, StorageError
 
 SETTINGS_FILE = "lia_settings.json"
+MODES = {"offline", "local", "cloud", "combined"}
 # Catálogo indicativo offline; não usar a data de execução como se fosse uma verificação das fontes.
 
 
@@ -57,23 +58,33 @@ def provider_catalog() -> List[Dict[str, Any]]:
     ]
 
 
+def validate_settings(data: Any) -> None:
+    """Preferências de catálogo, nunca credenciais ou prova de conexão."""
+    ids = {p["id"] for p in provider_catalog()}
+    if (not isinstance(data, dict) or set(data) - {"mode", "active_provider", "keys_present"}
+        or not isinstance(data.get("mode", "offline"), str)
+        or data.get("mode", "offline") not in MODES
+        or data.get("active_provider") not in (None, *ids)
+        or data.get("keys_present", False) is not False):
+        raise StorageError("configuração de provedor inválida; nenhuma conexão foi ativada")
+
+
 def get_settings(storage: Storage) -> Dict[str, Any]:
     data = storage.read_structured_global(SETTINGS_FILE)
-    if not isinstance(data, dict):
-        data = {}
-    data.setdefault("active_provider", None)
-    data.setdefault("mode", "offline")  # offline | local | cloud | combined
-    data.setdefault("keys_present", False)  # nunca verdadeiro por padrão; só após consentimento explícito
-    return data
+    validate_settings(data)
+    return {"active_provider": data.get("active_provider"),
+            "mode": data.get("mode", "offline"), "keys_present": False}
 
 
 def set_settings(storage: Storage, settings: Dict[str, Any]) -> Dict[str, Any]:
-    allowed = {"active_provider", "mode"}
-    clean = {k: v for k, v in settings.items() if k in allowed}
-    current = get_settings(storage)
-    current.update(clean)
-    storage.write_structured_global(SETTINGS_FILE, current)
-    return current
+    if not isinstance(settings, dict) or not settings or set(settings) - {"active_provider", "mode"}:
+        raise StorageError("altere somente modo ou provider do catálogo")
+    with storage.stage_lock:
+        current = get_settings(storage)
+        current.update(settings)
+        validate_settings(current)
+        storage.write_structured_global(SETTINGS_FILE, current)
+        return current
 
 
 def describe_runtime(storage: Storage) -> Dict[str, Any]:

@@ -603,9 +603,15 @@ function projectExecute(pid, data) {
       </div>
       <pre id="exec-${t.id}" class="card" style="white-space:pre-wrap;margin-top:8px;display:none"></pre>
     </div>`).join("") : `<div class="empty">Nenhuma tarefa para executar. Crie tarefas no Plano.</div>`;
+  const history = (data.recent_sessions || []).slice().reverse();
+  const sessionsHtml = history.length ? `<ul class="clean">${history.map(s =>
+    `<li><code>${esc(s.id)}</code> · tarefa ${esc(s.task_id)} · ${esc(s.finished_at)} ·
+    ${esc(s.runtime_id)}: <b>SIMULADO</b> · validação não realizada · nenhuma evidência verificada.</li>`
+  ).join("")}</ul>` : `<p class="muted">Nenhuma Session registrada nesta versão. Simulações anteriores não são reconstruídas automaticamente.</p>`;
   return `<h1>Execução assistida (simulada)</h1>
     <div class="banner warn"><b>Simulado:</b> não há agente de código nem engine conectados. A execução mostra a proposta e um resultado SIMULADO, claramente rotulado. Nenhum código é escrito e nenhum serviço é chamado.</div>
-    ${html}`;
+    ${html}
+    <div class="card"><h2>Sessions recentes (somente leitura)</h2>${sessionsHtml}</div>`;
 }
 async function wireExecute(pid) {}
 const previewedTasks = new Set();
@@ -633,7 +639,7 @@ async function execTask(pid, mid, tid) {
     const r = await api("POST", `/api/projects/${pid}/tasks/${mid}/${tid}/execute`, { approved: true });
     const pre = document.getElementById(`exec-${tid}`);
     pre.style.display = "block";
-    pre.textContent = `${r.proposal}\n\n${r.simulated_result}\n\n[${r.warning}]`;
+    pre.textContent = `${r.proposal}\n\n${r.simulated_result}\n\n[${r.warning}]${r.session ? `\n\nSession ${r.session.id}: fluxo simulado encerrado; validação não realizada e nenhuma evidência verificada.` : ""}`;
     toast("Execução simulada registrada.");
   } catch (e) { toast("Erro: " + e.message + " Revise a proposta e tente novamente."); }
 }
@@ -767,10 +773,11 @@ async function wireRelease(pid, rel) {
 function projectConfig(pid, data) {
   const eng = data.engine || {};
   const prov = data.providers || {};
-  const engOpts = ["generic","godot","unity","monogame"].map(id => `<option value="${id}" ${eng.id===id?"selected":""}>${id}</option>`).join("");
+  const engOpts = (data.engine_catalog || []).map(item =>
+    `<option value="${esc(item.id)}" ${eng.id===item.id?"selected":""}>${esc(item.name)} — ${item.verified ? "perfil genérico" : "não verificado"}</option>`).join("");
   return `<h1>Configuração do projeto</h1>
     <div class="card"><h3>Perfil de engine</h3>
-      <p class="muted">O núcleo é agnóstico a engine. Adaptadores reais (Godot/Unity/MonoGame) não foram verificados nesta alpha.</p>
+      <p class="muted">Perfil não é adapter. Unreal, Godot, Unity e MonoGame não detectam instalação nem abrem o editor nesta alpha.</p>
       <select id="eng-sel">${engOpts}</select>
       <div class="row" style="margin-top:10px"><button onclick="setEngine('${esc(pid)}')">Salvar perfil</button></div>
       <div class="tag">Atual: ${esc(eng.name||"—")} · verificado: ${eng.verified? "sim":"não"}</div>
@@ -784,8 +791,12 @@ function projectConfig(pid, data) {
 async function wireConfig(pid, data) {
   window.setEngine = async function (pid) {
     const id = document.getElementById("eng-sel").value;
-    await api("POST", `/api/projects/${pid}/engines`, { engine_id: id });
-    toast("Perfil de engine salvo."); renderProject(pid, "config");
+    if (!id) return toast("Nenhum perfil disponível; revise o catálogo.");
+    try {
+      await api("POST", `/api/projects/${pid}/engines`, { engine_id: id });
+      toast("Perfil de engine salvo (adapter não conectado).");
+      await renderProject(pid, "config");
+    } catch (e) { toast("Não foi possível salvar o perfil: " + e.message); }
   };
 }
 
@@ -817,8 +828,10 @@ async function renderGlobalConfig() {
     <div class="grid">${cat}</div>`;
   window.saveMode = async function () {
     const mode = document.getElementById("mode-sel").value;
-    await api("PUT", "/api/providers/settings", { mode });
-    toast("Modo salvo.");
+    try {
+      await api("PUT", "/api/providers/settings", { mode });
+      toast("Preferência salva; nenhum provedor foi conectado.");
+    } catch (e) { toast("Não foi possível salvar a preferência: " + e.message); }
   };
 }
 

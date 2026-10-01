@@ -1,14 +1,16 @@
 """Execução assistida — SIMULADA nesta entrega.
 
 Não há agente de código nem engine conectados. A execução produz uma proposta e um
-resultado SIMULADO, claramente rotulado, e não escreve código de jogo nem altera
-arquivos do projeto além do journal. A aprovação do Dev é separada da execução.
+resultado SIMULADO, claramente rotulado, e não escreve código de jogo. Após a
+aprovação, registra estado da tarefa, journal e metadados de Session locais; isso
+não produz evidência nem valida resultado.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict
 
-from . import planning
+from . import planning, sessions
 from .storage import Storage, StorageError
 
 
@@ -21,6 +23,12 @@ def simulate_execution(
 ) -> Dict[str, Any]:
     if type(approved) is not bool:
         raise StorageError("aprovação deve ser um booleano")
+    with storage.stage_lock:
+        return _simulate_locked(storage, project_id, module_id, task_id, approved)
+
+
+def _simulate_locked(storage: Storage, project_id: str, module_id: str,
+                     task_id: str, approved: bool) -> Dict[str, Any]:
     task = _find_task(storage, project_id, module_id, task_id)
     blockers = planning.module_blockers(planning.get_modules(storage, project_id), module_id)
     if approved and blockers:
@@ -39,10 +47,21 @@ def simulate_execution(
         "do fluxo de aprovação e registro, não código produzido."
     )
 
+    session = None
     if approved:
+        # Histórico íntegro é pré-requisito; nunca simular alterando modules.json
+        # se não for possível guardar o vínculo da Session em seguida.
+        sessions.preflight_simulation(storage, project_id)
+        started_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        entry = storage.get_entry(project_id)
+        if not entry or entry.get("stage", "preparation") not in ("preparation", "mvp", "production", "delivery"):
+            raise StorageError("estágio do projeto inválido")
         planning.record_simulated_execution(storage, project_id, module_id, task_id, simulated_result)
+        session = sessions.record_simulated(storage, project_id, module_id, task_id,
+                                            entry.get("stage", "preparation"), started_at)
     return {
         "task_id": task_id,
+        "session": session,
         "approved": approved,
         "simulated": approved,
         "blockers": blockers,

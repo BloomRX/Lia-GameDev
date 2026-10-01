@@ -9,7 +9,6 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List, Optional
 
-from . import templates_loader
 from .storage import Storage, StorageError
 
 LABELS = ["confirmado", "proposto", "suposição", "em aberto"]

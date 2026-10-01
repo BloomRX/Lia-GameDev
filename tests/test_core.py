@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.lia import (  # noqa: E402
-    storage, bootstrap, planning, conflicts, decisions, qa, release, providers, engines,
+    storage, bootstrap, planning, conflicts, decisions, qa, release, providers, engines, sessions,
 )
 from app.lia import stages  # noqa: E402
 
@@ -627,6 +627,128 @@ class TestDecisions(Base):
         self.assertEqual(self.store.read_doc(pid, "DECISIONS.md").count("**T"), 10)
 
 
+class TestSessions(Base):
+    def test_preview_creates_no_session_and_simulation_preserves_evidence_first(self):
+        from app.lia import execution
+        pid = self.store.create_project("Fluxo auditável")["id"]
+        mod = planning.create_module(self.store, pid, {"name": "M"})
+        task = planning.create_task(self.store, pid, mod["id"], {
+            "name": "T", "permissions": ["shell (solicitado)"]})
+        bootstrap.run_bootstrap(self.store, pid, {"idea": "Explorar ilhas"})
+        stages.advance(self.store, pid, "mvp", True, "Documentos revisados pelo Dev")
+        folder = self.store.project_path(pid)
+        preview = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=False)
+        self.assertIsNone(preview["session"])
+        self.assertFalse((folder / sessions.NAME).exists())
+        result = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        self.assertTrue(result["simulated"])
+        s = result["session"]
+        self.assertEqual((s["runtime_id"], s["state"], s["execution_status"]),
+                         ("simulator", "completed", "simulated"))
+        self.assertEqual((s["validation_status"], s["evidence_status"], s["verified_result"]),
+                         ("not_run", "not_verified", False))
+        self.assertIsNone(s["profile_id"])
+        self.assertIsNone(s["provider_id"])
+        self.assertIsNone(s["computer_use_backend_id"])
+        for key in ("skill_ids", "mcp_connection_ids", "tool_ids", "effective_permissions",
+                    "delivered_context", "evidence_ids", "artifact_paths"):
+            self.assertEqual(s[key], [])
+        self.assertNotIn("shell (solicitado)", (folder / sessions.NAME).read_text())
+        self.assertEqual(sessions.list_sessions(storage.Storage(Path(self.tmp)), pid), [s])
+        self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["validation_status"], "not_run")
+        self.assertIn("EXECUTION_NOT_VERIFIED", {i["code"] for i in
+                                             stages.evaluate(self.store, pid)["blockers"]})
+        again = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        self.assertNotEqual(again["session"]["id"], s["id"])
+        self.assertEqual(len(sessions.list_sessions(self.store, pid)), 2)
+        planning.update_task(self.store, pid, mod["id"], task["id"], {"status": "pendente"})
+        self.assertEqual(len(sessions.list_sessions(self.store, pid)), 2)  # reset não apaga histórico
+        with self.assertRaises(storage.StorageError):
+            sessions.validate_entries([{**s, "token": "jamais expor"}])
+
+    def test_invalid_history_blocks_simulation_before_task_mutation(self):
+        from app.lia import execution
+        pid = self.store.create_project("Integridade de Session")["id"]
+        mod = planning.create_module(self.store, pid, {"name": "M"})
+        task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
+        folder = self.store.project_path(pid)
+        history = folder / sessions.NAME
+        history.write_text("{incompleto")
+        with self.assertRaises(storage.StorageError):
+            execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
+        self.assertTrue(any(i["name"] == sessions.NAME for i in self.store.inspect_storage_issues()))
+        history.unlink()
+        with tempfile.TemporaryDirectory() as outside:
+            target = Path(outside) / "sessions.json"
+            target.write_text("segredo externo")
+            history.symlink_to(target)
+            with self.assertRaises(storage.StorageError):
+                execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+            self.assertEqual(target.read_text(), "segredo externo")
+        self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
+
+    def test_session_semantic_corruption_has_no_automatic_recovery(self):
+        pid = self.store.create_project("Histórico suspeito")["id"]
+        self.store.write_structured(pid, sessions.NAME, [{"id": "foo", "state": "completed"}])
+        with self.assertRaises(storage.StorageError):
+            sessions.list_sessions(self.store, pid)
+        issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == sessions.NAME)
+        self.assertFalse(issue["backup_available"])  # primeira versão também inválida
+        with self.assertRaises(storage.StorageError):
+            self.store.recover_json(sessions.NAME, pid, confirm=True)
+
+    def test_session_recovery_requires_valid_backup_and_confirmation(self):
+        from app.lia import execution
+        pid = self.store.create_project("Recuperar histórico")["id"]
+        mod = planning.create_module(self.store, pid, {"name": "M"})
+        task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
+        original = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)["session"]
+        path = self.store.project_path(pid) / sessions.NAME
+        path.write_text('{"schema_version": 2, "data": [{"id": "incompleto"}]}')
+        issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == sessions.NAME)
+        self.assertTrue(issue["backup_available"])
+        with self.assertRaises(storage.StorageError):
+            self.store.recover_json(sessions.NAME, pid)
+        self.store.recover_json(sessions.NAME, pid, confirm=True)
+        self.assertEqual(sessions.list_sessions(self.store, pid), [original])
+        self.assertTrue(any(p.name.startswith("sessions.json.corrupt-") for p in path.parent.iterdir()))
+
+    def test_history_from_other_project_is_diagnosed_and_cannot_be_recovered(self):
+        from app.lia import execution
+        first = self.store.create_project("Origem")["id"]
+        second = self.store.create_project("Destino")["id"]
+        mod = planning.create_module(self.store, first, {"name": "M"})
+        task = planning.create_task(self.store, first, mod["id"], {"name": "T"})
+        session = execution.simulate_execution(self.store, first, mod["id"], task["id"], approved=True)["session"]
+        dst = self.store.project_path(second) / sessions.NAME
+        # Cópia externa de JSON estruturalmente válido, mas de outro projeto.
+        self.store.write_structured(second, sessions.NAME, [session])
+        issue = next(i for i in self.store.inspect_storage_issues()
+                     if i["name"] == sessions.NAME and i["project_id"] == second)
+        self.assertFalse(issue["backup_available"])
+        with self.assertRaises(storage.StorageError):
+            sessions.list_sessions(self.store, second)
+        with self.assertRaises(storage.StorageError):
+            self.store.recover_json(sessions.NAME, second, confirm=True)
+        self.assertTrue(dst.is_file())
+
+    def test_session_record_without_new_optional_backend_field_is_readable(self):
+        from app.lia import execution
+        pid = self.store.create_project("Session anterior")["id"]
+        mod = planning.create_module(self.store, pid, {"name": "M"})
+        task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
+        original = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)["session"]
+        older = {k: v for k, v in original.items() if k != "computer_use_backend_id"}
+        path = self.store.project_path(pid) / sessions.NAME
+        path.write_text(json.dumps({"schema_version": 2, "data": [older]}))
+        self.assertEqual(sessions.list_sessions(self.store, pid), [older])
+        self.assertFalse(any(i["name"] == sessions.NAME for i in self.store.inspect_storage_issues()))
+        result = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        self.assertIsNone(result["session"]["computer_use_backend_id"])
+        self.assertEqual(len(sessions.list_sessions(self.store, pid)), 2)
+
+
 class TestDependencyGraph(Base):
     def test_unknown_duplicate_self_cycle_and_id_collisions(self):
         e = self.store.create_project("Grafo")
@@ -767,6 +889,43 @@ class TestHandoff(Base):
         planning.update_task(self.store, pid, m["id"], t["id"], {"objective": "Novo plano"})
         self.assertTrue(handoff.get_saved(self.store, pid)["stale"])
         self.assertIn("HANDOFF.md", self.store.list_docs(pid))
+
+    def test_session_history_in_handoff_is_metadata_only_and_invalidates_snapshot(self):
+        from app.lia import execution, handoff
+        pid = self.store.create_project("Histórico")["id"]
+        m = planning.create_module(self.store, pid, {"name": "Loop"})
+        t = planning.create_task(self.store, pid, m["id"], {"name": "Mover"})
+        preview = handoff.preview(self.store, pid, m["id"], t["id"])
+        self.assertIn("Nenhuma Session vinculada por ID", preview["content"])
+        self.assertEqual(sessions.list_sessions(self.store, pid), [])
+        handoff.save(self.store, pid, m["id"], t["id"], preview["digest"], confirm=True)
+        # A prévia de execução não grava Session e não deve envelhecer o handoff.
+        execution.simulate_execution(self.store, pid, m["id"], t["id"], approved=False)
+        self.assertFalse(handoff.get_saved(self.store, pid)["stale"])
+        result = execution.simulate_execution(self.store, pid, m["id"], t["id"], approved=True)
+        sid = result["session"]["id"]
+        self.assertTrue(handoff.get_saved(self.store, pid)["stale"])
+        with self.assertRaises(storage.StorageError):
+            handoff.save(self.store, pid, m["id"], t["id"], preview["digest"],
+                         confirm=True, replace=True)
+        fresh = handoff.preview(self.store, pid, m["id"], t["id"])
+        self.assertIn(f"Session `{sid}`", fresh["content"])
+        self.assertIn("execução simulated; validação not_run; evidência not_verified", fresh["content"])
+        self.assertIn("Total de Sessions desta tarefa: 1", fresh["content"])
+        self.assertNotIn(result["simulated_result"], fresh["content"])
+        self.assertNotIn("local_confirmation_unverified", fresh["content"])
+        self.assertIn("sessions.json", fresh["content"])
+        saved = handoff.save(self.store, pid, m["id"], t["id"], fresh["digest"],
+                             confirm=True, replace=True)
+        self.assertFalse(saved["stale"])
+        self.assertFalse(handoff.get_saved(storage.Storage(Path(self.tmp)), pid)["stale"])
+        # Mesmo sem alterar modules.json ou JOURNAL.md, histórico novo invalida o digest.
+        history = sessions.list_sessions(self.store, pid)
+        history.append({**history[-1], "id": "abcdef123456"})
+        self.store.write_structured(pid, "sessions.json", history)
+        self.assertTrue(handoff.get_saved(self.store, pid)["stale"])
+        self.assertIn("Total de Sessions desta tarefa: 2", handoff.preview(
+            self.store, pid, m["id"], t["id"])["content"])
 
     def test_handoff_rejects_unknown_cross_project_archived_and_symlink(self):
         from app.lia import handoff
@@ -1040,10 +1199,50 @@ class TestProvidersEngines(Base):
         self.assertFalse(rt["connected"])
         self.assertTrue(rt["simulated"])
 
+    def test_provider_preferences_validate_without_connecting_or_storing_secrets(self):
+        for bad in ({"mode": []}, {"mode": "paid"}, {"active_provider": {"token": "x"}},
+                    {"active_provider": "unknown"}, {"keys_present": True},
+                    {"api_key": "não armazenar"}, {}):
+            with self.assertRaises(storage.StorageError):
+                providers.set_settings(self.store, bad)
+        self.assertFalse((self.store.projects_dir / providers.SETTINGS_FILE).exists())
+        settings = providers.set_settings(self.store, {"mode": "cloud", "active_provider": "cloud-gemini"})
+        self.assertEqual(settings["mode"], "cloud")
+        self.assertFalse(settings["keys_present"])
+        self.assertFalse(providers.describe_runtime(self.store)["connected"])
+        self.assertNotIn("api_key", (self.store.projects_dir / providers.SETTINGS_FILE).read_text())
+
+    def test_provider_preferences_corruption_is_reported_and_backup_checked(self):
+        providers.set_settings(self.store, {"mode": "offline"})
+        providers.set_settings(self.store, {"mode": "local"})
+        path = self.store.projects_dir / providers.SETTINGS_FILE
+        backup = path.with_name(path.name + ".bak")
+        path.write_text(json.dumps({"schema_version": 2, "data": {"mode": "invalid"}}))
+        issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == providers.SETTINGS_FILE)
+        self.assertTrue(issue["backup_available"])
+        with self.assertRaises(storage.StorageError):
+            providers.get_settings(self.store)
+        valid_backup = backup.read_text()
+        backup.write_text(json.dumps({"schema_version": 2, "data": {"keys_present": True}}))
+        issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == providers.SETTINGS_FILE)
+        self.assertFalse(issue["backup_available"])
+        with self.assertRaises(storage.StorageError):
+            self.store.recover_json(providers.SETTINGS_FILE, confirm=True)
+        backup.write_text(valid_backup)
+        self.store.recover_json(providers.SETTINGS_FILE, confirm=True)
+        self.assertEqual(providers.get_settings(self.store)["mode"], "offline")
+
     def test_engines_generic_verified(self):
         e = self.store.create_project("E")
         cat = engines.get_catalog()
         self.assertTrue(any(x["id"] == "generic" and x["verified"] for x in cat))
+        self.assertTrue(any(x["id"] == "unreal" and not x["verified"] and
+                            x["status"] == "not_verified" for x in cat))
+        unreal = engines.set_profile(self.store, e["id"], "unreal")
+        self.assertFalse(unreal["verified"])
+        self.assertIn("não", unreal["note"].lower())
+        with self.assertRaises(ValueError):
+            engines.set_profile(self.store, e["id"], [])
         prof = engines.set_profile(self.store, e["id"], "godot")
         self.assertFalse(prof["verified"])
         self.assertEqual(self.store.read_structured(e["id"], "release.json"), {})
@@ -1289,6 +1488,74 @@ class TestHttpApi(Base):
         with self.assertRaises(HTTPError) as error:
             urlopen(post("/handoff", {"module_id": m["id"], "task_id": t["id"],
                                     "digest": preview["digest"], "confirm": True, "replace": True}))
+        self.assertEqual(error.exception.code, 400)
+
+    def test_provider_settings_api_rejects_invalid_preferences_without_network(self):
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        endpoint = self.base + "/api/providers/settings"
+        for body in ({"mode": 1}, {"mode": "billable"}, {"api_key": "segredo"},
+                     {"active_provider": []}, {"keys_present": True}):
+            with self.assertRaises(HTTPError) as error:
+                urlopen(Request(endpoint, method="PUT", data=json.dumps(body).encode(),
+                                headers={"Content-Type": "application/json"}))
+            self.assertEqual(error.exception.code, 400)
+        with urlopen(Request(endpoint, method="PUT", data=b'{"mode":"cloud"}',
+                             headers={"Content-Type": "application/json"})) as response:
+            self.assertEqual(json.load(response)["mode"], "cloud")
+        with urlopen(endpoint) as response:
+            prefs = json.load(response)
+        self.assertFalse(prefs["keys_present"])
+        self.assertFalse(providers.describe_runtime(self.store)["connected"])
+        self.assertNotIn("segredo", (self.store.projects_dir / providers.SETTINGS_FILE).read_text())
+
+    def test_unreal_profile_is_selectable_but_not_an_engine_adapter(self):
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        pid = self.store.create_project("Perfil Unreal")["id"]
+        url = self.base + f"/api/projects/{pid}/engines"
+        with urlopen(url) as response:
+            cat = json.load(response)["catalog"]
+        self.assertTrue(any(x["id"] == "unreal" and not x["verified"] for x in cat))
+        with urlopen(self.base + f"/api/projects/{pid}") as response:
+            self.assertEqual(json.load(response)["engine_catalog"], cat)
+        with urlopen(Request(url, data=b'{"engine_id":"unreal"}',
+                             headers={"Content-Type": "application/json"})) as response:
+            selected = json.load(response)
+        self.assertEqual((selected["id"], selected["verified"]), ("unreal", False))
+        with self.assertRaises(HTTPError) as error:
+            urlopen(Request(url, data=b'{"engine_id":[]}',
+                            headers={"Content-Type": "application/json"}))
+        self.assertEqual(error.exception.code, 400)
+        self.assertEqual(engines.get_profile(self.store, pid)["id"], "unreal")
+
+    def test_simulated_session_api_is_read_only_and_not_a_validated_result(self):
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        pid = self.store.create_project("Session HTTP")["id"]
+        mod = planning.create_module(self.store, pid, {"name": "M"})
+        task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
+        base = self.base + f"/api/projects/{pid}"
+        execute = base + f"/tasks/{mod['id']}/{task['id']}/execute"
+        def call(approved):
+            return Request(execute, data=json.dumps({"approved": approved}).encode(),
+                           headers={"Content-Type": "application/json"})
+        with urlopen(call(False)) as response:
+            self.assertIsNone(json.load(response)["session"])
+        with urlopen(base + "/sessions") as response:
+            self.assertEqual(json.load(response)["sessions"], [])
+        with urlopen(call(True)) as response:
+            record = json.load(response)["session"]
+        self.assertEqual(record["execution_status"], "simulated")
+        self.assertFalse(record["verified_result"])
+        with urlopen(base + "/sessions") as response:
+            self.assertEqual(json.load(response)["sessions"], [record])
+        with urlopen(base) as response:
+            project = json.load(response)
+        self.assertEqual(project["recent_sessions"], [record])
+        self.assertEqual(project["modules"][0]["tasks"][0]["validation_status"], "not_run")
+        with self.assertRaises(HTTPError) as error:
+            urlopen(Request(base + "/sessions", data=b"{}", headers={"Content-Type": "application/json"}))
         self.assertEqual(error.exception.code, 400)
 
     def test_dependency_blocker_exposed_and_approval_rejected_over_http(self):

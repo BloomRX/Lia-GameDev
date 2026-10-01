@@ -1,6 +1,8 @@
 # Provedores de IA e engines — suportados, requisitos e o que é simulado
 
-Tudo nesta alpha é **offline e simulado**. Nenhuma integração real foi executada.
+Provedores permanecem **offline/não conectados**; tarefas só têm execução
+simulada. Perfis de engine são metadados de planejamento, não adapters funcionais.
+Nenhuma integração real com engine foi executada.
 
 ## Provedores de IA (catálogo)
 | ID | Tipo | Requer | Custo | Dados | Estado |
@@ -10,18 +12,23 @@ Tudo nesta alpha é **offline e simulado**. Nenhuma integração real foi execut
 | cloud-openrouter | nuvem | Conta + chave do Dev | Modelos gratuitos sujeitos a limite | Conteúdo pode sair | não conectado / simulado |
 
 - **Modos:** `offline` (padrão) · `local` · `cloud` · `combined`.
-- Nenhuma chave é armazenada; nenhuma chamada é feita. Conectar fica fora desta entrega.
+- Preferências aceitam apenas modo conhecido e provider do catálogo. `cloud` é
+  escolha de interface, **não** conexão nem permissão de cobrança. A API rejeita
+  campos de segredo/valores inválidos e o diagnóstico/recovery valida o JSON.
+  Nenhuma chave é armazenada; nenhuma chamada é feita. Conectar fica fora desta entrega.
 
 ## Engines (perfis)
 | ID | Estado | Verificado? |
 |---|---|---|
-| generic (agnóstico) | suportado | sim |
+| generic (agnóstico) | suportado como perfil, sem ações de engine | sim (somente perfil) |
+| unreal | perfil disponível; sem detect/inspect/open/build/test, adapter ou MCP | não |
 | godot | perfil disponível | não |
 | unity | perfil disponível | não |
 | monogame | perfil disponível | não |
 
-- O núcleo não depende de engine. Adaptadores concretos são marcados `not_verified`
-  até haver ambiente seguro para verificar. Não alegamos integração real com engine.
+- O núcleo não depende de engine. A UI recebe o catálogo do servidor (não mantém
+  uma lista paralela) e exibe Unreal como `not_verified`. Os adapters concretos
+  ainda não existem: nenhum detect/open/build/test ou Unreal MCP está conectado.
 
 ## O que está apenas simulado
 - Inferência de IA (todas as rotas de provedor).

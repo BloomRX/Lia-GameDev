@@ -16,18 +16,18 @@ Legenda: ✅ implementado e testado · 🟡 implementado, não testado · 🔶 p
 |---|---|---|
 | Conversa guiada sem vocabulário técnico | ✅ | wizard de 8 campos |
 | Perguntas adaptativas de alto impacto | 🟡 | campos-chave; sem ramificação dinâmica |
-| Gerar documentos coerentes (brief/GDD/escopo/dec/ref) | ✅ | reutiliza skill; testado |
+| Gerar documentos coerentes (brief/GDD/escopo/dec/ref) | ✅ | gerador próprio testado; ainda não lê os templates da Skill |
 | Rótulos confirmado/proposto/suposição/em aberto | ✅ | testado; aba Decisões permite revisão manual por posição/revisão do JSON, sem escolher conflitos automaticamente |
 | Referências com origem/permissão | ✅ | tabela em REFERENCIAS |
 | Sugerir vertical slice sem virar limite | ✅ | texto explícito |
 | Não escrever gameplay | ✅ | verificado (nenhum código) |
-| Reutilizar skill existente (não duplicar) | ✅ | `templates_loader` |
+| Reutilizar skill existente (não duplicar) | 🔶 | `templates_loader` expõe a Skill para consulta; `bootstrap.py` ainda gera Markdown próprio e não lê templates |
 
 ## C. Plano, tarefas e continuidade
 | Item | Estado | Notas |
 |---|---|---|
 | Módulos/tarefas com aceite/dependências | ✅ | IDs e referências validados; ciclos rejeitados; bloqueio derivado exige estado concluído com execução, validação e revisão aprovadas; simulação não gera esses estados nem prova evidências reais |
-| Andamento, bloqueios, pendências, evidências | 🟡 | resumo em Visão geral |
+| Andamento, bloqueios, pendências, evidências | 🟡 | resumo em Visão geral; últimas cinco Sessions simuladas aparecem em Execução, sem comprovação de teste |
 | Journal/handoff/resumo de retomada | 🔶 | JOURNAL + resumo reconstruído; `HANDOFF.md` inclui referências de arquivo/QA por ID e sinaliza fonte alterada; faltam tentativas/runner de evidência real |
 | Pausar/retomar por arquivos persistidos | ✅ | reload reconstrói estado e aponta handoff desatualizado |
 | Handoff/retomada como skill | 🔶 | quatro skills documentais consultáveis; handoff dedicado na UI, mas nenhuma skill é executada por runtime |
@@ -36,7 +36,7 @@ Legenda: ✅ implementado e testado · 🟡 implementado, não testado · 🔶 p
 | Item | Estado | Notas |
 |---|---|---|
 | Escolher tarefa, ver objetivo/permissões/verificar | ✅ | formulário de tarefa |
-| Separar proposta/aprovação/execução | ✅ | prévia sem resultado salvo → confirmação explícita → registro simulado; servidor reavalia bloqueios |
+| Separar proposta/aprovação/execução | ✅ | prévia sem resultado salvo → confirmação explícita → registro simulado com Session metadata; servidor reavalia bloqueios; Session `completed` não aprova tarefa/validação |
 | Diffs/resultado (arquivos) | 🟣 | simulado (sem agente real) |
 | Pausa/cancelamento/retomada | 🔶 | estado de tarefa editável e resumo de retomada; não existe cancelamento de execução em andamento |
 | Permissões claras + confirmação destrutiva | ✅ | modelo de `permissions` |
@@ -45,7 +45,7 @@ Legenda: ✅ implementado e testado · 🟡 implementado, não testado · 🔶 p
 ## E. IA e provedores
 | Item | Estado | Notas |
 |---|---|---|
-| Tela de configuração simples + estado | ✅ | modo + catálogo |
+| Tela de configuração simples + estado | ✅ | modo/provider do catálogo validados, sem credenciais, conexão ou fallback pago |
 | Abstração local/nuvem + seleção por tarefa | 🟡 | modelo de modo; seleção por tarefa não UI-plena |
 | Nunca embutir chaves; storage seguro | 🔶 | chaves não são pedidas nem armazenadas; cofre seguro ainda não implementado |
 | Integração real só se segura/testável | 🟣 | tudo simulado/offline |
@@ -55,7 +55,7 @@ Legenda: ✅ implementado e testado · 🟡 implementado, não testado · 🔶 p
 ## F. Engines, assets, QA e entrega
 | Item | Estado | Notas |
 |---|---|---|
-| Perfil/config de engine (genérico + adaptadores) | 🟡 | godot/unity/monogame não verificados |
+| Perfil/config de engine (genérico + perfis não verificados) | 🔶 | UI usa catálogo da API; Unreal/Godot/Unity/MonoGame selecionáveis sem adapter real; genérico é apenas metadado suportado |
 | Referências/registro de assets + revisão humana | 🟡 | `ASSET_REGISTER` previsto; UI mínima |
 | QA/playtest com ferramenta/comando/evidência | 🔶 | registro manual e arquivos locais vinculáveis por ID com SHA-256/integridade; hash não valida critério, runner ausente |
 | Preparação de build/release (checklist/créditos/notas) | 🔶 | apenas preparação documental; API recusa `publicada`/`build_gerada` e `published: true`; artefato não existe |

@@ -20,6 +20,7 @@ from . import stages
 from . import skills
 from . import handoff
 from . import evidence
+from . import sessions
 
 __all__ = [
     "storage",
@@ -36,4 +37,5 @@ __all__ = [
     "skills",
     "handoff",
     "evidence",
+    "sessions",
 ]

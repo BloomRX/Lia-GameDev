@@ -55,6 +55,42 @@ antes de substituir `DECISIONS.md` editado manualmente. A Etapa 0 agora verifica
 já estiver corrompido. Revisão SHA-256 não autentica quem decidiu; gravações JSON
 + Markdown não são uma transação multi-arquivo. Sem teste de uso/Windows.
 
+Incremento arquitetural seguinte: após consultar `AI-AGENTS-ARCHITECTURE.md`,
+`AI-EXECUTION-ORCHESTRATION.md`, `AI-CONTEXT-AND-PERMISSIONS.md`,
+`ENGINE-ADAPTER-ARCHITECTURE.md`, `EVIDENCE-AND-EXECUTION-HISTORY.md` e o
+limite de `LIA-PROJECT-INTEGRATION.md`, a Decisão 15 registrou o formato mínimo
+para Session simulada. O núcleo não conecta Runtime real, Profile, Skills, MCP,
+Tools, Provider/Model ou Lia Project. `sessions.json` registra somente metadados
+após aprovação; prévia não cria histórico, e gate de execução real não é atendido.
+Sessões corrompidas bloqueiam nova simulação e aparecem na integridade.
+Persistência entre múltiplos arquivos/processos ainda não é transacional.
+
+## Auditoria adicional — 2026-10-01 (plano × implementação)
+
+| Achado | Evidência | Tratamento |
+|---|---|---|
+| Skill da Etapa 0 anunciada como fonte do gerador | `bootstrap.py` apenas importa `templates_loader`; os cinco documentos são montados em strings próprias, sem `read_template` | README/matriz/Decisão 7 corrigidos para **parcial**. Refatoração do wizard adiada até especificar a parametrização dos templates, sem criar runtime de Skill fictício. |
+| Contrato do Lia Project marcado como não iniciado | `docs/LIA-PROJECT-INTEGRATION.md` já define a fronteira opcional, mas não uma API implementável | Plano distingue especificação conceitual de bridge/autorização ainda pendentes; nada é importado do Lia Project. |
+| Unreal ausente do seletor apesar da prioridade no contrato de adapter | `ENGINE-ADAPTER-ARCHITECTURE.md` cita Unreal; catálogo só tinha genérico/Godot/Unity/MonoGame | Perfil `unreal` adicionado como `not_verified`, sem detectar instalação, abrir editor, executar comandos ou conectar Unreal MCP. Adapter real permanece pendente. |
+| Sessão não identificava ausência de Computer Use nem diagnosticava histórico de outro projeto | `AI-AGENTS-ARCHITECTURE.md` separa Computer Use; `sessions.json` validava forma mas saúde não comparava projeto | Novo campo opcional `computer_use_backend_id: null` (leitura dos registros anteriores preservada); diagnóstico/recovery impedem histórico cruzado. Nenhum backend é executado. |
+
+Não se concluiu nenhum lote de runtime real, Computer Use, MCP, provider ou Windows.
+Itens pendentes de decisão: contrato de parametrização da Skill; interface/consentimento
+revogável do bridge; autorização e sandbox de Computer Use; sem essas definições,
+não introduzir integrações difíceis de reverter. Avaliação de candidatos de
+`AI-INTEGRATION-CATALOG.md` é **pesquisa**, não validação ou dependência.
+
+## Incremento Alpha — 2026-10-01
+
+Decisões não resolvidas foram separadas em `DECISOES-PENDENTES-INTEGRACOES.md`
+com perguntas, critérios de desbloqueio e estado seguro. Nenhum backend foi
+escolhido ou instalado. Outro desalinhamento operacional foi corrigido: o catálogo
+já incluía Unreal na API, mas a aba Configuração mantinha uma lista fixa sem ele;
+agora lê `engine_catalog` do projeto e rotula perfis não verificados. Preferências
+globais de provider rejeitam valores/segredos desconhecidos (HTTP 400), saúde e
+recuperação conferem a configuração; modo `cloud` continua apenas uma preferência
+sem conexão ou cobrança. Nenhum teste Windows ou teste completo de navegador.
+
 Fontes de verificação: `tests/test_core.py`, `tests/test_ui.cjs`, `README.md`,
 `docs/matriz-funcionalidades.md`, `docs/quickstart-dev.md` e o plano técnico.
 Resultados e limitações medidos constam em `docs/testes-resultados.md`.

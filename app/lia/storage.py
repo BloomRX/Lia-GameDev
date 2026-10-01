@@ -40,6 +40,7 @@ STRUCTURED_FILES = [
     "modules.json",
     "qa.json",
     "evidence.json",
+    "sessions.json",
     "assets.json",
     "release.json",
     "engine_profile.json",
@@ -86,7 +87,7 @@ def _decode_json(text: str, name: str) -> Any:
         if type(raw.get("schema_version")) is not int or raw["schema_version"] != SCHEMA_VERSION or "data" not in raw:
             raise StorageError(f"versão ou formato incompatível em {name}")
         raw = raw["data"]
-    expected = list if name in {"decisions.json", "modules.json", "qa.json", "evidence.json", "assets.json"} else dict
+    expected = list if name in {"decisions.json", "modules.json", "qa.json", "evidence.json", "sessions.json", "assets.json"} else dict
     if not isinstance(raw, expected):
         raise StorageError(f"estrutura inválida em {name} (esperado {expected.__name__})")
     return raw
@@ -284,7 +285,7 @@ class Storage:
         return sorted(p.name for p in proj_dir.glob("*.md") if p.is_file() and not p.is_symlink())
 
     # ---- dados estruturados ----
-    _LIST_FILES = {"decisions.json", "modules.json", "qa.json", "evidence.json", "assets.json"}
+    _LIST_FILES = {"decisions.json", "modules.json", "qa.json", "evidence.json", "sessions.json", "assets.json"}
 
     def read_structured(self, project_id: str, name: str) -> Any:
         if name not in STRUCTURED_FILES:
@@ -379,10 +380,16 @@ class Storage:
                 self._atomic_write(backup, content)  # primeira versão também é recuperável
 
     @staticmethod
-    def _validate_decision_file(path: Path, data: Any) -> None:
+    def _validate_project_file(path: Path, data: Any, project_id: Optional[str] = None) -> None:
         if path.name in ("decisions.json", "decisions.json.bak"):
             from . import decisions
             decisions.validate_entries(data)
+        if path.name in ("sessions.json", "sessions.json.bak"):
+            from . import sessions
+            sessions.validate_entries(data, expected_project_id=project_id)
+        if path.name in ("lia_settings.json", "lia_settings.json.bak"):
+            from . import providers
+            providers.validate_settings(data)
 
     def inspect_json_issues(self) -> List[Dict[str, Any]]:
         """Diagnóstico somente leitura; nunca reconstitui um índice vazio por engano."""
@@ -391,13 +398,13 @@ class Storage:
             if not path.exists() and not path.is_symlink() and not self._backup_path(path).exists():
                 return
             try:
-                self._validate_decision_file(path, self._read_json(path))
+                self._validate_project_file(path, self._read_json(path), project_id)
             except StorageError as exc:
                 recoverable = False
                 if "versão" not in str(exc) and not path.is_symlink():  # sem downgrade/links
                     try:
                         backup = self._backup_path(path)
-                        self._validate_decision_file(backup, self._read_json(backup))
+                        self._validate_project_file(backup, self._read_json(backup), project_id)
                         recoverable = True
                     except StorageError:
                         pass
@@ -476,11 +483,11 @@ class Storage:
                 raise StorageError("recuperação por link simbólico não permitida")
             if not backup.is_file():
                 raise StorageError(f"backup não disponível para {name}")
-            self._validate_decision_file(backup, self._read_json(backup))
+            self._validate_project_file(backup, self._read_json(backup), project_id)
             content = backup.read_text(encoding="utf-8")
             if path.exists():
                 try:
-                    self._validate_decision_file(path, self._read_json(path))
+                    self._validate_project_file(path, self._read_json(path), project_id)
                 except StorageError as exc:
                     if "versão" in str(exc):
                         raise StorageError("arquivo de versão futura: atualize o app; não restaure por cima") from exc

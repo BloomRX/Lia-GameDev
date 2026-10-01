@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
-from .lia import bootstrap, conflicts, decisions as decisions_service, engines, evidence, execution, handoff, planning, providers, qa, release, skills, stages, templates_loader
+from .lia import bootstrap, conflicts, decisions as decisions_service, engines, evidence, execution, handoff, planning, providers, qa, release, sessions, skills, stages, templates_loader
 from .lia.storage import Storage, StorageError
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -107,10 +107,12 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
             "conflicts": conflicts_list,
             "modules": modules,
             "module_blockers": planning.dependency_report(modules),
+            "recent_sessions": sessions.list_sessions(storage, pid)[-5:],
             "qa": qa.get_verifications(storage, pid),
             "release": release.get_release(storage, pid),
             "resume": planning.build_resume(storage, pid),
             "engine": engines.get_profile(storage, pid),
+            "engine_catalog": engines.get_catalog(),
             "providers": providers.describe_runtime(storage),
         }
 
@@ -166,6 +168,8 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
 
     if method == "POST" and len(sub) == 4 and sub[0] == "tasks" and sub[3] == "execute":
         return execution.simulate_execution(storage, pid, sub[1], sub[2], approved=body.get("approved", False))
+    if method == "GET" and sub == ["sessions"]:
+        return {"sessions": sessions.list_sessions(storage, pid)}
 
     if method == "GET" and sub == ["conflicts"]:
         return {"conflicts": conflicts.detect_conflicts(storage.read_structured(pid, "decisions.json"))}

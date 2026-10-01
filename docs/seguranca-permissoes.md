@@ -37,6 +37,21 @@
   mostra permissões antes de aprovar. Nesta alpha a execução é simulada, então nenhuma
   dessas ações reais é executada.
 
+## Sessão do simulador (Alpha)
+- Somente a confirmação grava Session. Runtime `simulator` não recebe ambiente,
+  credenciais, contexto externo, Tools, MCP, Computer Use ou permissões efetivas;
+  Profile e Provider/Model permanecem não atribuídos. Metadados da Session não atestam
+  execução/validação reais. A API local de histórico não autentica usuários:
+  não exponha o servidor fora de uma rede confiável. A aprovação para runtime
+  real exigirá política e revisão específicas antes de ser implementada.
+
+## Preferências de provider não concedem acesso
+- Apenas `mode` e `active_provider` do catálogo podem ser alterados pela API.
+  Chaves/segredos e declarações de credencial presente são rejeitados; corrupção
+  semântica é visível na integridade do armazenamento. `cloud` e `combined` não
+  iniciam conexão, gasto ou envio de dados. Política de custo e autorização real
+  permanecem pendentes em `DECISOES-PENDENTES-INTEGRACOES.md`.
+
 ## Validação de informação volátil
 - Preços/quotas/regiões do catálogo offline são indicativos: incluem fonte para
   consulta, mas **não foram verificados automaticamente nem datados como atuais**.

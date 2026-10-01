@@ -8,7 +8,8 @@
     `HANDOFF.md` (opcional, salvo somente após revisão/confirmação).
   - JSON estruturado: `decisions.json`, `modules.json`, `qa.json`, `assets.json`,
     `release.json`, `engine_profile.json`, `evidence.json` (metadados de arquivos
-    locais, IDs e SHA-256; não contém o conteúdo dos arquivos referenciados).
+    locais, IDs e SHA-256; não contém o conteúdo dos arquivos referenciados) e
+    `sessions.json` (somente metadados de simulações aprovadas, sem logs ou prompts).
 - O registro de decisões usa `decisions.json` como fonte estruturada; a aba Decisões
   reescreve a projeção `DECISIONS.md` após revisão. Se o Markdown foi editado
   manualmente, substituí-lo exige confirmação explícita. A revisão SHA-256 do
@@ -17,7 +18,8 @@
 - **Fonte única de metadados do projeto:** `<pasta>/lia_index.json` (nome,
   localização, status, estágio, decisões de avanço, próximo passo). Um projeto
   novo não gera `meta.json`; não há duas cópias do estado para divergir.
-  Configurações globais ficam em `<pasta>/lia_settings.json`.
+  Configurações globais ficam em `<pasta>/lia_settings.json`; a Alpha armazena só
+  preferência de modo/provider do catálogo e `keys_present: false`, sem chaves.
 
 ## Formato
 - Tudo é texto (Markdown/JSON) — legível, versionável e exportável. Nenhum binário de
@@ -68,6 +70,14 @@
   passa a `changed`/`unavailable`, **sem** mudar estado de tarefa ou QA. O hash não
   atesta execução real nem autoriza publicação. Arquivos referenciados podem viajar
   na exportação da pasta: revise conteúdo/segredos antes de compartilhar.
+- `sessions.json` contém metadados de Session, não a saída bruta do worker:
+  runtime `simulator`, Profile/Skills/MCP/Tools/Provider/Model não atribuídos,
+  Computer Use nulo (campo opcional em registros novos), permissões efetivas e
+  contexto externo vazios; estado terminal da simulação
+  distinto de validação/evidência, ambas não verificadas. Prévia não escreve
+  Session; simulações anteriores não geram registros retroativos. A leitura pela
+  API é local e deve ser protegida como os demais dados do projeto; não há
+  retenção/limpeza automática nem transação com módulos/journal.
 - `HANDOFF.md` é uma projeção local, não uma cópia dos arquivos de projeto nem das
   evidências brutas de QA. A prévia não grava nada; a confirmação salva o Markdown.
   O hash do snapshot indica alteração nas fontes estruturadas e nos documentos

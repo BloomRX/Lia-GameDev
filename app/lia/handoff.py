@@ -1,6 +1,6 @@
 """Handoff humano: prévia sem escrita, confirmação explícita e snapshot Markdown local.
 
-HANDOFF.md é uma projeção revisável; módulos/decisões/QA continuam canônicos.
+HANDOFF.md é uma projeção revisável; módulos/decisões/QA/Sessions continuam canônicos.
 Não copia conteúdo de documentos, journal, arquivos da tarefa nem evidência bruta.
 """
 from __future__ import annotations
@@ -9,7 +9,7 @@ import hashlib
 import json
 from typing import Any, Dict, List, Tuple
 
-from . import conflicts, evidence, planning, qa
+from . import conflicts, evidence, planning, qa, sessions
 from .storage import Storage, StorageError
 
 NAME = "HANDOFF.md"
@@ -58,6 +58,8 @@ def _context(storage: Storage, project_id: str, module_id: str, task_id: str) ->
     related = [q for q in checks if q.get("target_ref") in refs]
     records = evidence.list_records(storage, project_id)
     linked_evidence = [r for r in records if r.get("target_ref") in refs]
+    history = sessions.list_sessions(storage, project_id)
+    linked_sessions = [s for s in history if s["module_id"] == module_id and s["task_id"] == task_id]
     summary = {k: entry.get(k) for k in ("id", "name", "stage", "phase", "archived", "next_step")}
     return {
         "project": summary, "module": mod, "task": task,
@@ -65,12 +67,15 @@ def _context(storage: Storage, project_id: str, module_id: str, task_id: str) ->
         "decisions": decisions, "conflicts": conflicts.detect_conflicts(decisions),
         "qa": related, "qa_total": len(checks),
         "evidence": linked_evidence, "evidence_total": len(records),
+        "sessions": linked_sessions[-5:], "session_total": len(linked_sessions),
         # Detectar mudanças mesmo nos predecessores e em QA não vinculado por ID.
         "modules_fingerprint": hashlib.sha256(json.dumps(modules, sort_keys=True,
                                  ensure_ascii=False).encode("utf-8")).hexdigest(),
         "qa_fingerprint": hashlib.sha256(json.dumps(checks, sort_keys=True,
                             ensure_ascii=False).encode("utf-8")).hexdigest(),
         "evidence_fingerprint": hashlib.sha256(json.dumps(records, sort_keys=True,
+                                  ensure_ascii=False).encode("utf-8")).hexdigest(),
+        "sessions_fingerprint": hashlib.sha256(json.dumps(history, sort_keys=True,
                                   ensure_ascii=False).encode("utf-8")).hexdigest(),
         "sources": _source_hashes(storage, project_id),
     }
@@ -129,10 +134,16 @@ def _render(c: Dict[str, Any], digest: str) -> str:
               f"alvo: {_text(r.get('target_ref'))}; QA: {_text(r.get('qa_id'))}."
               for r in c["evidence"]] or ["- Nenhum vinculado; consulte evidence.json para os demais."]
     lines += [f"- Total de arquivos de evidência no projeto: {c['evidence_total']}.",
-              "- Tentativas e falhas: consultar JOURNAL.md, qa.json e evidence.json; o Studio não executou os comandos citados.",
+              "- Sessions desta tarefa (até 5 mais recentes; apenas metadados locais, não logs nem evidência):"]
+    lines += [f"- Session `{_text(s['id'])}`: estado {_text(s['state'])}; "
+              f"execução {_text(s['execution_status'])}; validação {_text(s['validation_status'])}; "
+              f"evidência {_text(s['evidence_status'])}; fim {_text(s['finished_at'])}."
+              for s in c["sessions"]] or ["- Nenhuma Session vinculada por ID."]
+    lines += [f"- Total de Sessions desta tarefa: {c['session_total']}. Session simulada não comprova execução, teste ou evidência verificada.",
+              "- Tentativas e falhas: consultar JOURNAL.md, sessions.json, qa.json e evidence.json; o Studio não executou os comandos citados.",
               "", "## Próximo passo", "", f"- {_text(p['next_step'])}",
               "- Revisar decisões, caminhos e permissões com o Dev antes de retomar.",
-              "", "## Arquivos-fonte", "", "- MODULE_INDEX.md, modules.json, decisions.json, qa.json, evidence.json;",
+              "", "## Arquivos-fonte", "", "- MODULE_INDEX.md, modules.json, decisions.json, qa.json, evidence.json, sessions.json;",
               "- PROJECT_BRIEF.md, GDD.md, SCOPE.md, DECISIONS.md, JOURNAL.md.",
               "- Snapshot pode ficar desatualizado. Atualize-o após mudanças; não depende desta conversa.", ""]
     return "\n".join(lines)

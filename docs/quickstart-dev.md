@@ -49,6 +49,10 @@ a API pede nova revisão. Nada é enviado nem executado automaticamente.
 - Aba **Execução**: clique **Ver proposta** antes de decidir. A prévia não grava
   resultado; **Aprovar e simular** exige confirmação separada, reavalia bloqueios
   e só então registra resultado **SIMULADO** (sem agente/engine reais, sem chamadas).
+  A sessão aparece no histórico recente da mesma aba; `completed` significa apenas
+  que o fluxo simulado terminou, **não** que a tarefa passou na validação. A API
+  `GET /api/projects/<id>/sessions` lista o histórico; simulações anteriores a
+  esta versão não são recriadas e prévias não geram Session.
 
 ## 5. QA / Playtest
 - Aba **QA**: registre verificações com critério, ferramenta, comando (se houver),
@@ -81,7 +85,10 @@ use caminhos relativos com `/`; o teste de uso Windows será feito depois pelo D
 
 ## 8. Provedores / Engine
 - **Configurações** (topo) e aba **Configuração** do projeto: catálogo de provedores
-  e perfil de engine. Tudo **offline/simulado** nesta alpha; nenhuma chave é gravada.
+  e perfil de engine do catálogo servido pela API. Unreal é selecionável **sem
+  adapter verificado**; nenhum editor, build ou MCP é acionado. Modos/provider de
+  IA são apenas preferências validadas: até `cloud` permanece **não conectado**,
+  sem custo, chave ou inferência. Execuções de tarefas continuam simuladas.
 
 ## Explorar Skills
 Na barra superior ou na Home, escolha **Skills** para consultar as quatro instruções

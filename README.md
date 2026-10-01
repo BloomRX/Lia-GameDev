@@ -16,8 +16,9 @@ supervisionáveis, sem substituir a direção criativa do Dev.
 - Gerenciamento de projetos (criar, renomear, arquivar, reabrir, excluir com confirmação).
 - JSON versionado, backup local da versão anterior, diagnóstico e recuperação
   com confirmação. Exportação manual de projeto com manifesto do índice.
-- **Etapa 0** guiada que reutiliza a skill `lia-game-project-bootstrap` e gera os
-  documentos do jogo (brief, GDD, escopo, decisões, referências) sem escrever gameplay.
+- **Etapa 0** guiada que gera documentos do jogo (brief, GDD, escopo, decisões,
+  referências) sem escrever gameplay. A skill `lia-game-project-bootstrap` é
+  consultável, mas o gerador ainda não usa seus templates diretamente.
 - Edição de documentos Markdown e rótulos `confirmado/proposto/suposição/em aberto`.
 - Detecção de **conflitos** entre decisão confirmada e suposição/em-aberto; aba
   Decisões para registro e revisão humana, com proteção contra edição obsoleta e
@@ -27,13 +28,18 @@ supervisionáveis, sem substituir a direção criativa do Dev.
   explícita. Sem execução real, o gate de saída do MVP permanece bloqueado.
 - Prévia de proposta sem gravação, seguida de aprovação explícita e execução
   **simulada** (validação e revisão do resultado são separadas; sem código/serviço real).
+  Cada confirmação nova registra uma Session de simulação com ID em `sessions.json`;
+  conclusão da Session não comprova execução real, validação ou evidência.
 - QA/playtest com registro **manual** de verificações (planejado/executado/aprovado/falhou);
   critério, ferramenta e evidência são exigidos para resultados não planejados.
   Arquivos já existentes no projeto podem ser vinculados a módulo/tarefa e QA por ID;
   o SHA-256 verifica apenas integridade dos bytes, nunca aprovação do teste.
 - Preparação documental de build/release (checklist, créditos, notas) — **sem
   build nem publicação**; API não permite declarar build gerada ou publicação.
-- Configuração de provedores (local/nuvem) e perfil de engine, sempre offline/simulado.
+- Preferências de provedores validadas (modo/provider do catálogo, sem credenciais),
+  sempre offline; perfis de engine exibidos do catálogo, incluindo Unreal não verificado.
+  Nenhum adapter ou provider real está conectado.
+- Decisões que bloqueiam integrações futuras: `docs/DECISOES-PENDENTES-INTEGRACOES.md`.
 - Interface navegável (SPA) servida localmente, com preview no navegador.
 - Handoff explícito por tarefa: prévia, revisão e confirmação geram `HANDOFF.md`
   no projeto. A retomada sinaliza quando o snapshot mudou; não envia dados nem
@@ -42,7 +48,8 @@ supervisionáveis, sem substituir a direção criativa do Dev.
 
 ## O que é apenas simulado / não implementado
 - Inferência real de IA (Ollama/Gemini/OpenRouter): apenas catálogo e modo; nada conectado.
-- Integração real com engines (Godot/Unity/MonoGame): perfis disponíveis, não verificados.
+- Integração real com engines (Unreal/Godot/Unity/MonoGame): perfis selecionáveis,
+  mas adapters não implementados/verificados.
 - Empacotamento Windows (executável): a arquitetura prepara o alvo, mas o `.exe` não
   foi gerado/testado neste ambiente (Linux). Veja `docs/arquitetura-decisoes.md`.
 

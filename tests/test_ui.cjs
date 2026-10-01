@@ -15,7 +15,7 @@ const context = {
   location: { hash: '#/home' },
   fetch: async (url, options) => {
     requests.push({ url, options });
-    return { ok: true, json: async () => ({ proposal: 'Proposta', simulated_result: options.body && JSON.parse(options.body).approved ? 'SIMULADO' : null, blockers: [], warning: 'Aviso' }) };
+    return { ok: true, json: async () => ({ proposal: 'Proposta', simulated_result: options.body && JSON.parse(options.body).approved ? 'SIMULADO' : null, session: options.body && JSON.parse(options.body).approved ? {id: 'session-1'} : null, blockers: [], warning: 'Aviso' }) };
   },
   clearTimeout, setTimeout: () => 1,
   confirm: () => true,
@@ -38,6 +38,7 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   assert.equal(requests[1].url, '/api/projects/project-1/tasks/module-1/task/execute');
   assert.deepEqual(JSON.parse(requests[1].options.body), { approved: true });
   assert.match(pre.textContent, /SIMULADO/);
+  assert.match(pre.textContent, /Session session-1: fluxo simulado encerrado; validação não realizada/);
   assert.equal(approval.disabled, true);
   assert.equal(pre.style.display, 'block');
   const blockedHtml = context.projectExecute('project-1', {
@@ -47,6 +48,14 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   assert.match(blockedHtml, /Execução bloqueada: Falta a base/);
   assert.match(blockedHtml, /id="approve-task" disabled onclick="execTask/);
   assert.match(blockedHtml, /previewTask\('project-1','module-1','task'\)/);
+  const historyHtml = context.projectExecute('project-1', {
+    modules: [], recent_sessions: [{id: 'session-1', task_id: 'task', runtime_id: 'simulator',
+      finished_at: '2026-09-30'}],
+  });
+  assert.match(historyHtml, /Sessions recentes/);
+  assert.match(historyHtml, /SIMULADO/);
+  assert.match(historyHtml, /nenhuma evidência verificada/);
+  assert.doesNotMatch(historyHtml, /validação aprovada/);
   const planHtml = context.projectPlan('project-1', {
     modules: [{ id: 'base', name: 'Base', tasks: [] },
               { id: 'module-1', name: 'M', depends_on: ['base'], tasks: [] }],
@@ -214,5 +223,19 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   context.confirm = () => true;
   await context.window.saveDecision();
   assert.equal(JSON.parse(requests.at(-1).options.body).replace_projection, true);
+  const configHtml = context.projectConfig('project-1', {
+    engine: {id: 'unreal', name: 'Unreal Engine', verified: false},
+    engine_catalog: [{id: 'generic', name: 'Genérico', verified: true},
+      {id: 'unreal', name: 'Unreal Engine', verified: false}],
+    providers: {mode: 'offline', connected: false, simulated: true},
+  });
+  assert.match(configHtml, /value="unreal" selected/);
+  assert.match(configHtml, /Unreal Engine — não verificado/);
+  assert.match(configHtml, /Perfil não é adapter/);
+  context.document.getElementById = id => ({view, toast, 'eng-sel': {value: 'unreal'}})[id];
+  context.wireConfig('project-1', {});
+  await context.window.setEngine('project-1');
+  assert.equal(requests.at(-1).url, '/api/projects/project-1/engines');
+  assert.deepEqual(JSON.parse(requests.at(-1).options.body), {engine_id: 'unreal'});
   console.log('UI regression: OK');
 })().catch(error => { console.error(error); process.exitCode = 1; });

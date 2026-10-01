@@ -2148,17 +2148,17 @@ Somente mediante autorização explícita.
 - [ ] Project service.
 - [ ] Pipeline/stage service.
 - [ ] Task service.
-- [ ] Execution service.
+- [ ] Execution service (Session mínima do simulador em `sessions.py`; runtime real, validação e cancelamento continuam pendentes).
 - [ ] Validation/QA service.
 - [ ] Evidence service completo (registro local básico em `evidence.py`: ID, alvo estável, QA opcional, hash de arquivo relativo e integridade recalculada; captura automática, runner e verdict ainda pendentes).
-- [ ] Resume/handoff service completo (handoff básico isolado em `handoff.py`: snapshot `HANDOFF.md` por tarefa, prévia + confirmação, fonte reavaliada e indicador `stale`; resume ainda em `planning.py`; tentativa/evidência executável e skill runtime pendentes).
+- [ ] Resume/handoff service completo (handoff básico isolado em `handoff.py`: snapshot `HANDOFF.md` por tarefa, prévia + confirmação, fonte reavaliada e indicador `stale`; metadados de Sessions simuladas vinculadas por ID, sem conteúdo bruto nem validação; resume ainda em `planning.py`; tentativa/evidência executável e skill runtime pendentes).
 
 ## Lote E — capabilities e adapters
 
 - [ ] Capability resolver.
-- [ ] Provider interface.
+- [ ] Provider interface (preferências offline validadas; conexão/credenciais ainda bloqueadas pelas decisões em `DECISOES-PENDENTES-INTEGRACOES.md`).
 - [ ] Tool interface.
-- [ ] Engine interface.
+- [ ] Engine interface (Unreal já pode ser selecionado como perfil **não verificado**; adapter/detecção/build/teste não existem).
 - [ ] Permission service.
 - [ ] Logs estruturados.
 
@@ -2198,7 +2198,7 @@ Somente mediante autorização explícita.
 
 ## Lote J — integração Lia Project
 
-- [ ] Contrato de integração.
+- [ ] Contrato de integração implementável (`LIA-PROJECT-INTEGRATION.md` define apenas fronteira conceitual; API, autorização e revogação ainda pendentes).
 - [ ] Bridge opcional de provider/contexto.
 - [ ] Integração sem dependência circular.
 
@@ -2297,6 +2297,10 @@ Sempre que uma decisão antiga for substituída, atualizar este documento e o do
 | 2026-09-30 | Registro local de evidências (parcial) | Identificar arquivos por ID e detectar alterações sem confundir hash com validação | `evidence.json` v2, SHA-256 até 50 MB e caminho dentro do projeto sem links simbólicos; vínculo QA/target por ID, status de integridade derivado, API/UI/handoff; sem runner, verdict, execução real ou teste Windows. |
 | 2026-09-30 | Entrada e Markdown defensivos | Evitar 500 e leitura fora do projeto por links ou índice adulterado | Tipos rejeitados antes de escrita no wizard/plano/docs; links de Markdown e pasta do projeto recusados; índice com pasta inválida bloqueado em leitura/exclusão; diagnóstico de Markdown somente leitura. Não há transações multi-processo ou aceite Windows. |
 | 2026-09-30 | Decisões revisáveis | Permitir revisão humana de conflitos sem corromper o registro | Aba Decisões, API GET/POST/PUT por posição com revisão SHA-256 do JSON, diagnóstico/recovery de entradas inválidas e confirmação para substituir DECISIONS.md editado manualmente; wizard verifica decisions.json antes de gerar documentos. Sem transação multi-arquivo ou teste de uso/Windows. |
+| 2026-09-30 | Session de simulação (parcial) | Criar histórico observável sem promover simulação a execução real | ADR 15 antes de definir `sessions.json` v2; prévia não persiste Session, aprovação registra metadados de Runtime `simulator` com IDs/estágio e estado terminal, validação/evidência não verificadas. API/aba Execução somente leitura do histórico; sem Profile, MCP, Tool, Provider/Model conectados, credenciais, runner real, transação multi-arquivo ou validação Windows. |
+| 2026-10-01 | Auditoria de alinhamento após contratos de Computer Use | Corrigir afirmações divergentes antes de conectar integrações | Skill da Etapa 0 é consultável, mas não é fonte do gerador; fronteira Lia Project é conceitual, sem bridge/API; Unreal agora é perfil `not_verified`, sem adapter/MCP; Session do simulador registra Computer Use nulo, preservando leitura de registros anteriores. Sem validação Windows ou backend de Computer Use. |
+| 2026-10-01 | Decisões pendentes e preferências Alpha | Manter integrações reais desligadas enquanto a Alpha avança | `DECISOES-PENDENTES-INTEGRACOES.md` registra questões de parametrização da Skill, bridge, Computer Use e dependências de runtime; a UI usa catálogo de engine da API e mostra Unreal sem prometer adapter; modos/provider offline são validados sem chave, conexão ou custo. |
+| 2026-10-01 | Handoff com referência ao histórico simulado | Não perder o vínculo de tentativas sem inventar validação | Até cinco IDs/estados de Sessions da tarefa e contagem aparecem em `HANDOFF.md`; fingerprint de `sessions.json` invalida snapshot ao mudar o histórico. Não copia logs/prompts nem comprova execução real. |
 
 Adicionar novas entradas sem apagar histórico importante.
 

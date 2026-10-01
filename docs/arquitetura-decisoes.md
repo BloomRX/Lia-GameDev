@@ -32,9 +32,10 @@ Data: 2026-09-29. Ambiente de build: Linux (sandbox). Destino final: Windows.
 - `LIA_PROJECTS_DIR` permite escolher outra pasta. Sem dados anteriores a migrar.
 
 ## Decisão 4 — Núcleo agnóstico a engine / provedor
-- `engines.py` e `providers.py` são adaptadores. Engine "generic" é suportada; as
-  demais (Godot/Unity/MonoGame) são perfis **não verificados**. Provedores de IA são
-  catálogo + modo, sempre `not_connected`/`simulated`.
+- `engines.py` e `providers.py` são catálogos/perfis da Alpha, **não** adapters
+  reais. Engine `generic` é perfil agnóstico; Unreal/Godot/Unity/MonoGame são
+  perfis **não verificados**. Provedores de IA são catálogo + modo, sempre
+  `not_connected`/`simulated`. Adapters reais permanecem separados do core.
 
 ## Decisão 5 — Execução e IA são simuladas nesta entrega
 - Não há agente de código nem engine conectados. `execution.simulate_execution`
@@ -45,9 +46,15 @@ Data: 2026-09-29. Ambiente de build: Linux (sandbox). Destino final: Windows.
   em branch de trabalho separada, preservando a skill da Etapa 0 como base.
   Não houve alteração de `main`, merge ou force-push.
 
-## Decisão 7 — Reutilização da skill (não duplicação)
-- O fluxo de Etapa 0 lê `.agents/skills/lia-game-project-bootstrap/` (SKILL.md, templates,
-  glossário) como fonte, em vez de reimplementar um wizard concorrente.
+## Decisão 7 — Reutilização da skill (direção; execução parcial)
+- Direção: `.agents/skills/lia-game-project-bootstrap/` deve ser a fonte do
+  procedimento da Etapa 0; não criar dois métodos concorrentes de preparação.
+- **Auditoria de 2026-10-01:** `templates_loader` permite consultar Skill,
+  templates e glossário pela API, mas `bootstrap.py` gera seu próprio Markdown e
+  não lê esses templates. A afirmação anterior de reutilização no gerador era
+  incorreta. A parametrização dos templates e a responsabilidade pelo conteúdo
+  final precisam de contrato próprio antes de refatorar o wizard; até lá, a
+  integração é **parcial**, sem alegar Skill executada por runtime.
 
 ## Atualização incremental (2026-09-30)
 A fase não avança automaticamente por falta de tarefas abertas; o próximo passo
@@ -120,7 +127,11 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   o marcador indica snapshot desatualizado; Markdown manual sem marcador tem
   atualidade desconhecida. O texto ainda requer revisão humana após qualquer edição.
 - QA bruta e conteúdo de documentos/arquivos/journal não são copiados, apenas
-  referências/estados. Texto de decisões, tarefas, caminhos ou permissões **pode
+  referências/estados. O histórico de Sessions simuladas aparece apenas por ID e
+  estados das até 5 mais recentes da tarefa, com contagem total; `sessions.json`
+  entra no fingerprint para invalidar o snapshot quando o histórico mudar. Isso
+  não valida uma execução, evidência ou teste, nem copia prompts/logs do worker.
+  Texto de decisões, tarefas, caminhos ou permissões **pode
   conter segredos**: a UI pede revisão antes de compartilhar; não há filtro de
   credenciais garantido, envio externo, agente nem execução de skills.
 - A conferência de hash funciona para gravações feitas por este processo; não é
@@ -163,3 +174,43 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
 - A revisão comprova somente qual lista foi vista, não a veracidade de uma decisão.
   Rótulo “confirmado” é escolha do Dev; conflitos continuam bloqueando gate e
   nenhuma decisão é resolvida automaticamente. Não há migração de registros antigos.
+
+## Decisão 15 — Histórico mínimo de Session para o simulador (2026-09-30)
+- **Contratos existentes:** `AI-AGENTS-ARCHITECTURE.md` separa Runtime, Profile,
+  Skill, MCP, Tool, Provider/Model e Session; `AI-EXECUTION-ORCHESTRATION.md`
+  define estados e o percurso Task → Session → Result → Evidence;
+  `EVIDENCE-AND-EXECUTION-HISTORY.md` separa término de processo, validação e
+  evidência. O formato em disco do histórico Alpha ainda não estava definido.
+- **Escolha limitada à Alpha:** `app/lia/sessions.py` registra somente metadados
+  de simulações **aprovadas** em `sessions.json`, lista com envelope JSON v2 e
+  backup/recovery existentes. Prévia não cria Session. Cada registro possui ID,
+  projeto/módulo/tarefa e estágio, runtime `simulator` explicitamente não real,
+  estado terminal da **Session**, execução `simulated`, validação `not_run`,
+  evidência `not_verified`, referências de evidência vazias e timestamps. Profile,
+  Skills, MCP, Tools, Provider, Model e Computer Use ficam ausentes/nulos, não são
+  inferidos da configuração global. Em registros novos,
+  `computer_use_backend_id: null` explicita essa ausência; registros anteriores
+  sem esse campo permanecem legíveis sem migração. Permissões efetivas e contexto entregue a runtime externo
+  são vazios; nenhuma credencial, saída bruta, prompt ou ambiente é persistido.
+  `completed` descreve apenas o fluxo de simulação, nunca a tarefa ou o jogo.
+- Histórico é append-only por API (sem migrar simulações antigas nem apagar
+  automaticamente), somente leitura na UI; a tarefa continua em `modules.json`
+  com execução `simulated` e gate não avança. O link com `evidence.json` permanece
+  reservado até haver evidências de execução/validação reais; hash de arquivo
+  manual não vira aprovação. Serviço de Session não é registry de Runtime,
+  Profile, Skill, MCP, Tool ou Provider. A separação será usada para adaptar um
+  executor real depois, com decisões adicionais antes de configurar credenciais,
+  retenção ou processos externos. O diagnóstico de integridade e a recuperação
+  recusam registros/backup cujo `project_id` pertença a outro projeto.
+- O lock local serializa o registro neste processo, mas `modules.json`, journal,
+  índice e `sessions.json` não formam transação multi-arquivo/processo. Falha de
+  disco pode exigir reconciliação manual; não declarar histórico completo nem
+  execução verificada. Lia Project permanece opcional e fora do core.
+
+## Limites para integrações posteriores (2026-10-01)
+- O registro de questões pendentes está em `DECISOES-PENDENTES-INTEGRACOES.md`.
+  Ele **não** escolhe backend, custo, credencial ou autoridade em nome do Dev.
+- Preferências globais do catálogo (`offline`, `local`, `cloud`, `combined` e ID
+  conhecido) são apenas configuração offline. Entrada inválida/segredo em JSON
+  não é aceita nem restaurada como configuração saudável; salvar a preferência
+  não conecta provider, não habilita chaves e não faz inferência.
