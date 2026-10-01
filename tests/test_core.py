@@ -1040,6 +1040,51 @@ class TestHandoff(Base):
 
 
 class TestEvidence(Base):
+    def test_semantic_corruption_cannot_claim_verification_and_backup_is_checked(self):
+        from app.lia import evidence
+        pid = self.store.create_project("Evidência confiável")["id"]
+        mod = planning.create_module(self.store, pid, {"name": "M"})
+        task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
+        path = self.store.project_path(pid) / "captura.txt"
+        path.write_text("arquivo local")
+        data = {"target_ref": "task:" + task["id"], "path": "captura.txt"}
+        with self.assertRaises(storage.StorageError):
+            evidence.register(self.store, pid, {**data, "verified_result": True})
+        self.assertFalse((path.parent / "evidence.json").exists())
+        original = evidence.register(self.store, pid, data)
+        self.assertFalse(original["verified_result"])
+        record = self.store.read_structured(pid, "evidence.json")[0]
+        for updates in ({"verified_result": True}, {"origin": "worker"},
+                        {"sha256": "0" * 63}, {"bytes": True},
+                        {"path": "../externo.txt"}, {"target_ref": "task:"},
+                        {"captured_at": "sem data"}):
+            with self.subTest(updates=updates), self.assertRaises(storage.StorageError):
+                evidence.validate_entries([{**record, **updates}])
+        # Uma escrita manual de JSON válida na sintaxe não é evidência verificada.
+        self.store.write_structured(pid, "evidence.json", [{**record, "verified_result": True}])
+        with self.assertRaises(storage.StorageError):
+            evidence.list_records(self.store, pid)
+        with self.assertRaises(storage.StorageError):
+            evidence.register(self.store, pid, data)
+        issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == "evidence.json")
+        self.assertTrue(issue["backup_available"])
+        with self.assertRaises(storage.StorageError):
+            self.store.recover_json("evidence.json", pid)
+        self.store.recover_json("evidence.json", pid, confirm=True)
+        self.assertEqual(evidence.list_records(self.store, pid)[0]["integrity"], "intact")
+        self.assertFalse(evidence.list_records(self.store, pid)[0]["verified_result"])
+
+    def test_semantically_invalid_first_backup_cannot_be_restored(self):
+        from app.lia import evidence
+        pid = self.store.create_project("Backup inválido")["id"]
+        self.store.write_structured(pid, "evidence.json", [{"id": "incompleto"}])
+        issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == "evidence.json")
+        self.assertFalse(issue["backup_available"])
+        with self.assertRaises(storage.StorageError):
+            self.store.recover_json("evidence.json", pid, confirm=True)
+        with self.assertRaises(storage.StorageError):
+            evidence.list_records(self.store, pid)
+
     def test_file_hash_integrity_is_not_test_approval_and_handoff_becomes_stale(self):
         import hashlib
         from app.lia import evidence, handoff
@@ -1498,6 +1543,14 @@ class TestHttpApi(Base):
                             headers={"Content-Type": "application/json"}))
         self.assertEqual(error.exception.code, 400)
         self.assertEqual(len(self.store.read_structured(pid, "evidence.json")), 1)
+        record = self.store.read_structured(pid, "evidence.json")[0]
+        self.store.write_structured(pid, "evidence.json", [{**record, "verified_result": True}])
+        with self.assertRaises(HTTPError) as error:
+            urlopen(url)
+        self.assertEqual(error.exception.code, 400)
+        self.assertNotIn("conteúdo privado do Dev", error.exception.read().decode("utf-8"))
+        with urlopen(self.base + "/api/storage/health") as response:
+            self.assertTrue(any(i["name"] == "evidence.json" for i in json.load(response)["issues"]))
 
     def test_bad_wizard_planning_and_markdown_link_return_400_without_writes(self):
         from urllib.error import HTTPError

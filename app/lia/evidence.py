@@ -16,20 +16,28 @@ from .storage import Storage, StorageError
 
 NAME = "evidence.json"
 MAX_BYTES = 50 * 1024 * 1024
+RECORD_FIELDS = {"id", "target_ref", "qa_id", "path", "sha256", "bytes",
+                 "captured_at", "origin", "note"}
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _file(storage: Storage, project_id: str, relative: str) -> Path:
-    if not isinstance(relative, str) or not relative or "\\" in relative or ":" in relative:
+def _relative_path(relative: Any) -> Path:
+    """Verifica sintaxe sem exigir que o arquivo ainda exista no projeto."""
+    if not isinstance(relative, str) or not relative or "\\" in relative or ":" in relative or "\x00" in relative:
         raise StorageError("use caminho relativo ao projeto, com barras / e sem drive")
     if relative in (NAME, NAME + ".bak"):
         raise StorageError("o próprio índice de evidências não pode ser registrado")
     raw = Path(relative)
     if raw.is_absolute() or any(p in ("", ".", "..") for p in relative.split("/")):
         raise StorageError("caminho de evidência inválido")
+    return raw
+
+
+def _file(storage: Storage, project_id: str, relative: str) -> Path:
+    raw = _relative_path(relative)
     base = storage.project_path(project_id)
     if base.is_symlink():
         raise StorageError("pasta do projeto não pode ser link simbólico para registrar evidência")
@@ -80,13 +88,40 @@ def _validate_target(storage: Storage, project_id: str, ref: str, qa_id: str) ->
             raise StorageError("verificação QA não encontrada ou vinculada a outro alvo")
 
 
+def validate_entries(items: Any) -> None:
+    """Só metadados manuais conhecidos; jamais aceitar verdict ou conteúdo extra."""
+    if not isinstance(items, list):
+        raise StorageError("registros de evidência inválidos")
+    ids = set()
+    for r in items:
+        if not isinstance(r, dict) or set(r) != RECORD_FIELDS:
+            raise StorageError("formato de evidência inválido; revise evidence.json")
+        if (not isinstance(r["id"], str) or not r["id"] or r["id"] in ids or
+            not isinstance(r["qa_id"], str) or not isinstance(r["note"], str) or
+            not isinstance(r["target_ref"], str)):
+            raise StorageError("metadados de evidência inválidos")
+        ids.add(r["id"])
+        kind, _, ident = r["target_ref"].partition(":")
+        if kind not in ("module", "task") or not ident:
+            raise StorageError("alvo de evidência inválido")
+        _relative_path(r["path"])  # arquivo removido ainda é registro válido
+        digest = r["sha256"]
+        if (not isinstance(digest, str) or len(digest) != 64 or
+            any(ch not in "0123456789abcdef" for ch in digest) or
+            type(r["bytes"]) is not int or not 0 <= r["bytes"] <= MAX_BYTES or
+            r["origin"] != "manual_local_file"):
+            raise StorageError("hash, tamanho ou origem de evidência inválidos")
+        try:
+            if (not isinstance(r["captured_at"], str) or
+                datetime.fromisoformat(r["captured_at"]).tzinfo is None):
+                raise ValueError("data sem fuso")
+        except ValueError as exc:
+            raise StorageError("data de evidência inválida") from exc
+
+
 def _load(storage: Storage, project_id: str) -> List[Dict[str, Any]]:
     items = storage.read_structured(project_id, NAME)
-    if not isinstance(items, list) or any(not isinstance(r, dict) or not isinstance(r.get("id"), str)
-                                          or not r["id"] for r in items):
-        raise StorageError("registros de evidência inválidos")
-    if len({r["id"] for r in items}) != len(items):
-        raise StorageError("IDs de evidência duplicados")
+    validate_entries(items)
     return items
 
 
@@ -106,8 +141,8 @@ def list_records(storage: Storage, project_id: str) -> List[Dict[str, Any]]:
 
 def register(storage: Storage, project_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Registra hash de arquivo já existente; não altera tarefa, QA nem gates."""
-    if not isinstance(data, dict):
-        raise StorageError("evidência inválida")
+    if not isinstance(data, dict) or set(data) - {"target_ref", "qa_id", "path", "note"}:
+        raise StorageError("evidência aceita somente alvo, QA, caminho e nota")
     ref, qa_id, rel, note = (data.get("target_ref"), data.get("qa_id", ""),
                               data.get("path"), data.get("note", ""))
     if not isinstance(qa_id, str) or not isinstance(note, str):

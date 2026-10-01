@@ -236,6 +236,18 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   O contrato multiagente novo está refletido como decisões **pendentes** em
   `DECISOES-PENDENTES-INTEGRACOES.md` (D4); não há delegação na Alpha.
 
+## Decisão 18 — Metadados de evidência estritos (2026-10-01)
+- `evidence.json` aceita somente os campos do registro manual local (ID, alvo por
+  referência, QA opcional, caminho relativo, hash, tamanho, data com fuso, origem
+  `manual_local_file` e nota). Campos extras, inclusive um `verified_result`
+  persistido, origem de worker não implementado ou path inválido, falham na leitura
+  de evidências e no diagnóstico; nunca são ecoados pela API como se fossem prova.
+- Arquivo referenciado removido ou alterado **não** corrompe o registro: integridade
+  derivada continua `unavailable`/`changed`. A recuperação confirmada só aceita
+  backup semanticamente válido. Não tentar migrar automaticamente JSON editado
+  manualmente: revisar ou restaurar backup antes de registrar nova evidência.
+  Nenhum hash, relato ou backup valida execução, QA ou resultado de Agent.
+
 ## Limites para integrações posteriores (2026-10-01)
 - O registro de questões pendentes está em `DECISOES-PENDENTES-INTEGRACOES.md`.
   Ele **não** escolhe backend, custo, credencial ou autoridade em nome do Dev.

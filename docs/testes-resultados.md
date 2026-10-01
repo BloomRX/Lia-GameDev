@@ -80,6 +80,16 @@ ficar ilegível ou se a pasta receber conteúdo preserva dados para revisão.
 `git diff --check` → **OK**. D4 documenta decisões Multi-Agent ainda abertas,
 sem implantar Orchestrator ou alterar Sessions. Sem teste de uso/Windows.
 
+### Validação semântica de evidências — 2026-10-01
+`python tests/test_core.py` → **99 testes OK**. Campos persistidos extras,
+origem desconhecida, hash/tamanho/data/caminho/alvo inválidos são recusados
+antes de responder na API ou registrar mais evidências. Saúde reporta JSON
+semanticamente inválido; recuperação exige confirmação e backup válido. Arquivo
+alterado/ausente continua a aparecer como `changed`/`unavailable`.
+`node tests/test_ui.cjs`, `node --check app/static/app.js`,
+`python -m compileall -q app` e `git diff --check` → **OK**.
+Sem validação Windows, teste de uso nem execução real.
+
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
 listar decisões (todas `em aberto`) → inserir decisão conflitante (plataforma

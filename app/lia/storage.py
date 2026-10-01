@@ -399,6 +399,9 @@ class Storage:
         if path.name in ("sessions.json", "sessions.json.bak"):
             from . import sessions
             sessions.validate_entries(data, expected_project_id=project_id)
+        if path.name in ("evidence.json", "evidence.json.bak"):
+            from . import evidence
+            evidence.validate_entries(data)
         if path.name in ("lia_settings.json", "lia_settings.json.bak"):
             from . import providers
             providers.validate_settings(data)

@@ -68,9 +68,12 @@
 - Nenhum dado de projeto sai da máquina por padrão.
 - `evidence.json` é registro local de SHA-256/ID/arquivo relativo/QA opcional. O
   registro só lê arquivos de até 50 MB dentro do projeto, recusando links simbólicos;
-  a API não serve os bytes. Se o arquivo mudar/desaparecer, a integridade calculada
-  passa a `changed`/`unavailable`, **sem** mudar estado de tarefa ou QA. O hash não
-  atesta execução real nem autoriza publicação. Arquivos referenciados podem viajar
+  a API não serve os bytes. Campos persistidos inesperados (inclusive uma alegação
+  de `verified_result`) são rejeitados e diagnosticados, não expostos como dados
+  confiáveis; recuperar exige backup válido e confirmação. Se o arquivo
+  mudar/desaparecer, a integridade calculada passa a `changed`/`unavailable`,
+  **sem** mudar estado de tarefa ou QA. O hash não atesta execução real nem
+  autoriza publicação. Arquivos referenciados podem viajar
   na exportação da pasta: revise conteúdo/segredos antes de compartilhar.
 - `sessions.json` contém metadados de Session, não a saída bruta do worker:
   runtime `simulator`, Profile/Skills/MCP/Tools/Provider/Model não atribuídos,
