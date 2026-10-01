@@ -1,10 +1,10 @@
 # Lia Studio — AI Agents Architecture
 
-> Especificação técnica inicial para separar Runtime, Role, Skill, MCP, Tool, Provider, Model e Session.
+> Especificação técnica para separar Runtime, Role, Skill, MCP, Tool, Provider, Model, Computer Use e Session.
 
 ## 1. Princípio
 
-O Lia Studio deve tratar **Agent Runtime, Role/Profile, Skill, MCP, Tool, Provider/Model e Session como entidades distintas**.
+O Lia Studio deve tratar **Agent Runtime, Role/Profile, Skill, MCP, Tool, Provider/Model, Computer Use e Session como entidades distintas**.
 
 Não criar uma classe ou módulo monolítico `Agent` que contenha toda a lógica.
 
@@ -15,6 +15,7 @@ Agent Role/Profile
       │
       ├── Skills
       ├── Runtime
+      ├── Computer Use (opcional)
       ├── MCP Connections
       ├── Tools
       ├── Context
@@ -51,7 +52,30 @@ Responsabilidades:
 
 O Runtime não deve possuir conhecimento específico de uma fase do jogo.
 
-## 4. Role/Profile
+## 4. Computer Use Runtime
+
+Computer Use é uma capacidade/runtime especializado em operar interfaces gráficas reais por mouse, teclado, tela e/ou acessibilidade.
+
+Exemplos de implementação candidata:
+
+- [Agent S](https://github.com/simular-ai/Agent-S) — framework open-source de computer use multiplataforma;
+- outros backends de computer use podem ser adicionados futuramente.
+
+Agent S é **uma implementação possível**, não uma dependência obrigatória do Lia Studio.
+
+O Studio deve manter o contrato abstrato para permitir trocar o backend.
+
+Computer Use pode ser usado para:
+
+- QA visual;
+- testar menus e interfaces;
+- operar ferramentas sem API;
+- executar fluxos no editor/jogo;
+- capturar evidências visuais.
+
+Computer Use deve sempre respeitar as permissões da Session e pode exigir approval gate.
+
+## 5. Role/Profile
 
 Representa **como o runtime será utilizado para uma tarefa**.
 
@@ -68,13 +92,15 @@ Um Profile referencia Skills, permissões e capacidades relevantes, mas não pre
 Exemplo:
 
 ```text
-Profile: Gameplay
+Profile: Gameplay QA
 Runtime: Claude Code
-Skills: Unreal Gameplay, Debugging
-MCP: Unreal, Git
+Skills: Unreal QA
+MCP: Unreal
+Computer Use: Agent S
+Permissions: project + editor, no publish
 ```
 
-## 5. Skill
+## 6. Skill
 
 Skill é conhecimento/instrução/workflow reutilizável.
 
@@ -88,7 +114,7 @@ Não é responsabilidade da Skill:
 - conectar MCP automaticamente;
 - executar operações privilegiadas sem autorização.
 
-## 6. MCP Connection
+## 7. MCP Connection
 
 Representa uma conexão configurada com um servidor MCP.
 
@@ -105,7 +131,7 @@ Deve registrar, quando aplicável:
 
 MCP configurado não significa MCP conectado à sessão atual.
 
-## 7. Tool
+## 8. Tool
 
 Tool é uma operação concreta oferecida por um runtime ou integração.
 
@@ -120,7 +146,7 @@ Source: Unreal MCP
 
 Tools não devem ser transformadas em Agents individuais.
 
-## 8. Provider e Model
+## 9. Provider e Model
 
 Provider é o serviço/API que fornece capacidade de IA ou outro serviço externo.
 
@@ -128,7 +154,7 @@ Model é uma implementação/modelo específico quando o provider/runtime permit
 
 Não assumir que todo runtime expõe provider e model separadamente. A arquitetura deve suportar runtimes que encapsulam essas escolhas.
 
-## 9. Session
+## 10. Session
 
 Session representa uma execução concreta.
 
@@ -141,6 +167,7 @@ Deve permitir rastrear:
 - skills utilizadas;
 - MCPs conectados;
 - tools utilizadas quando disponível;
+- computer-use backend quando utilizado;
 - provider/model quando disponível;
 - permissões efetivas;
 - estado;
@@ -149,12 +176,13 @@ Deve permitir rastrear:
 - duração;
 - erro/cancelamento.
 
-## 10. Registry
+## 11. Registry
 
 O Studio deve possuir registries separados para:
 
 ```text
 Runtime Registry
+Computer Use Registry
 Skill Registry
 MCP Registry
 Tool Registry
@@ -163,12 +191,13 @@ Provider Registry
 
 Não criar um único catálogo genérico que perca a origem e o tipo da integração.
 
-## 11. Configuração global e de projeto
+## 12. Configuração global e de projeto
 
 ### Global
 
 ```text
 Runtimes
+Computer Use backends
 MCP Connections
 Providers/APIs
 Skills disponíveis
@@ -184,13 +213,14 @@ Runtime/Profile selecionado
 Skills autorizadas
 MCPs permitidos
 Tools permitidas
+Computer Use permitido
 Provider/model policy
 Permissions
 ```
 
 O projeto referencia recursos globais; não precisa duplicá-los.
 
-## 12. Fluxo de resolução
+## 13. Fluxo de resolução
 
 ```text
 Task
@@ -205,6 +235,8 @@ Skills
  ↓
 MCP + Tools
  ↓
+Computer Use (se necessário)
+ ↓
 Permissions
  ↓
 Session
@@ -212,9 +244,11 @@ Session
 
 Se não houver capacidade suficiente, a tarefa deve parar ou solicitar intervenção, em vez de inventar uma ferramenta.
 
-## 13. Segurança
+## 14. Segurança
 
 Credenciais devem ser fornecidas apenas para a integração/sessão que precisa delas.
+
+Computer Use é uma capacidade de alto impacto: ações de shell, arquivos, instalações, publicação ou outras operações destrutivas devem permanecer atrás das políticas de permissão e approval gates.
 
 Nunca encaminhar automaticamente todo o ambiente do processo para um runtime.
 
@@ -227,13 +261,13 @@ Nenhum segredo deve aparecer em:
 - evidências;
 - UI.
 
-## 14. Extensibilidade
+## 15. Extensibilidade
 
-Novos runtimes, providers, MCPs e engines devem ser adicionáveis sem alterar o núcleo da pipeline.
+Novos runtimes, providers, MCPs, computer-use backends e engines devem ser adicionáveis sem alterar o núcleo da pipeline.
 
 A implementação inicial pode ser pequena, mas os contratos devem permitir expansão.
 
-## 15. Regra para implementação
+## 16. Regra para implementação
 
 > **Primeiro separar as responsabilidades; depois adicionar integrações reais.**
 >
