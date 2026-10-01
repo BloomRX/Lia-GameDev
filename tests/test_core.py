@@ -28,6 +28,15 @@ class Base(unittest.TestCase):
         import shutil
         shutil.rmtree(self.tmp, ignore_errors=True)
 
+    def symlink_or_skip(self, link, target, *, target_is_directory=False):
+        """Windows pode exigir Modo de Desenvolvedor para testes de symlink."""
+        try:
+            link.symlink_to(target, target_is_directory=target_is_directory)
+        except (OSError, NotImplementedError):
+            if os.name == "nt":
+                self.skipTest("symlink indisponível sem privilégio no Windows")
+            raise
+
     def simulate_after_preview(self, pid, mid, tid):
         from app.lia import execution
         preview = execution.simulate_execution(self.store, pid, mid, tid, approved=False)
@@ -166,7 +175,7 @@ class TestStorage(Base):
             target = Path(outside) / "dados.md"
             target.write_text("segredo externo")
             link = folder / "GDD.md"
-            link.symlink_to(target)
+            self.symlink_or_skip(link, target)
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(pid, "GDD.md")
             with self.assertRaises(storage.StorageError):
@@ -176,7 +185,7 @@ class TestStorage(Base):
             issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == "GDD.md")
             self.assertFalse(issue["backup_available"])
             link.unlink()
-            link.symlink_to(Path(outside) / "inexistente.md")
+            self.symlink_or_skip(link, Path(outside) / "inexistente.md")
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(pid, "GDD.md")
             link.unlink()
@@ -189,7 +198,7 @@ class TestStorage(Base):
             target = Path(outside) / "fora.md"
             target.write_text("segredo")
             link = self.store.project_path(pid) / "JOURNAL.md"
-            link.symlink_to(target)
+            self.symlink_or_skip(link, target)
             with self.assertRaises(storage.StorageError):
                 bootstrap._append_journal(self.store, pid, "registro")
             self.assertEqual(target.read_text(), "segredo")
@@ -209,12 +218,13 @@ class TestStorage(Base):
         staged = folder.with_name(folder.name + "-movido")
         folder.rename(staged)
         try:
-            folder.symlink_to(staged, target_is_directory=True)
+            self.symlink_or_skip(folder, staged, target_is_directory=True)
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(pid, "GDD.md")
             self.assertTrue(any(i["name"] == "pasta do projeto" for i in self.store.inspect_storage_issues()))
         finally:
-            folder.unlink()
+            if folder.is_symlink():
+                folder.unlink()
             staged.rename(folder)
 
     def test_index_folder_traversal_cannot_read_or_delete_outside_project(self):
@@ -490,7 +500,7 @@ class TestBootstrap(Base):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
             target.write_text("externo")
-            (folder / "GDD.md").symlink_to(target)
+            self.symlink_or_skip(folder / "GDD.md", target)
             with self.assertRaises(storage.StorageError):
                 bootstrap.run_bootstrap(self.store, pid, {"idea": "Ilhas"})
             self.assertFalse((folder / "PROJECT_BRIEF.md").exists())
@@ -503,6 +513,42 @@ class TestBootstrap(Base):
             bootstrap.run_bootstrap(self.store, pid, {"idea": "Ilhas"})
         self.assertEqual(self.store.list_docs(pid), [])
         self.assertEqual(self.store.get_entry(pid)["phase"], "bootstrap")
+
+    def test_bootstrap_is_one_time_and_preserves_manual_documents_and_decisions(self):
+        pid = self.store.create_project("Revisado")["id"]
+        bootstrap.run_bootstrap(self.store, pid, {"idea": "Primeira ideia"})
+        self.store.write_doc(pid, "GDD.md", "# Edição manual do Dev")
+        decisions_before = self.store.read_structured(pid, "decisions.json")
+        journal_before = self.store.read_doc(pid, "JOURNAL.md")
+        with self.assertRaisesRegex(storage.StorageError, "Etapa 0 já iniciada"):
+            bootstrap.run_bootstrap(self.store, pid, {"idea": "Segunda ideia"})
+        self.assertEqual(self.store.read_doc(pid, "GDD.md"), "# Edição manual do Dev")
+        self.assertEqual(self.store.read_structured(pid, "decisions.json"), decisions_before)
+        self.assertEqual(self.store.read_doc(pid, "JOURNAL.md"), journal_before)
+        self.assertEqual(self.store.get_entry(pid)["phase"], "plan")
+
+    def test_bootstrap_refuses_existing_source_archived_and_other_stage(self):
+        pid = self.store.create_project("Preexistente")["id"]
+        self.store.write_doc(pid, "SCOPE.md", "# Plano privado")
+        with self.assertRaises(storage.StorageError):
+            bootstrap.run_bootstrap(self.store, pid, {"idea": "nova"})
+        self.assertEqual(self.store.list_docs(pid), ["SCOPE.md"])
+        self.assertEqual(self.store.get_entry(pid)["phase"], "bootstrap")
+        second = self.store.create_project("Decisões preexistentes")["id"]
+        self.store.write_structured(second, "decisions.json", [])
+        with self.assertRaises(storage.StorageError):
+            bootstrap.run_bootstrap(self.store, second, {"idea": "nova"})
+        self.assertFalse(self.store.list_docs(second))
+        archived = self.store.create_project("Arquivado")["id"]
+        self.store.archive_project(archived)
+        with self.assertRaises(storage.StorageError):
+            bootstrap.run_bootstrap(self.store, archived, {"idea": "nova"})
+        self.assertEqual(self.store.list_docs(archived), [])
+        third = self.store.create_project("Fora da preparação")["id"]
+        self.store.record_stage_transition(third, "preparation", "mvp", "fixture", "fixture")
+        with self.assertRaises(storage.StorageError):
+            bootstrap.run_bootstrap(self.store, third, {"idea": "nova"})
+        self.assertEqual(self.store.list_docs(third), [])
 
     def test_full_idea_labels(self):
         e = self.store.create_project("Cheio")
@@ -656,7 +702,7 @@ class TestDecisions(Base):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
             target.write_text("segredo")
-            (self.store.project_path(pid) / "DECISIONS.md").symlink_to(target)
+            self.symlink_or_skip(self.store.project_path(pid) / "DECISIONS.md", target)
             with self.assertRaises(storage.StorageError):
                 decisions.save(self.store, pid, {"topic": "T", "value": "valor"})
             self.assertEqual(target.read_text(), "segredo")
@@ -761,7 +807,7 @@ class TestSessions(Base):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "sessions.json"
             target.write_text("segredo externo")
-            history.symlink_to(target)
+            self.symlink_or_skip(history, target)
             with self.assertRaises(storage.StorageError):
                 self.simulate_after_preview(pid, mod["id"], task["id"])
             self.assertEqual(target.read_text(), "segredo externo")
@@ -1025,7 +1071,7 @@ class TestHandoff(Base):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
             target.write_text("segredo")
-            handoff_path.symlink_to(target)
+            self.symlink_or_skip(handoff_path, target)
             with self.assertRaises(storage.StorageError):
                 handoff.get_saved(self.store, pid)
             with self.assertRaises(storage.StorageError):
@@ -1133,7 +1179,7 @@ class TestEvidence(Base):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.txt"
             target.write_text("segredo")
-            (folder / "link.txt").symlink_to(target)
+            self.symlink_or_skip(folder / "link.txt", target)
             with self.assertRaises(storage.StorageError):
                 evidence.register(self.store, pid, {"target_ref": "task:" + t["id"], "path": "link.txt"})
         for ref, qa_id, source in (("task:inexistente", "", pid),
@@ -1149,7 +1195,7 @@ class TestEvidence(Base):
         self.store.write_structured(pid, "evidence.json", [])
         with self.assertRaises(storage.StorageError):
             evidence.register(self.store, pid, {"target_ref": "task:" + t["id"], "path": "evidence.json"})
-        (folder / "dirlink").symlink_to(folder, target_is_directory=True)
+        self.symlink_or_skip(folder / "dirlink", folder, target_is_directory=True)
         with self.assertRaises(storage.StorageError):
             evidence.register(self.store, pid, {"target_ref": "task:" + t["id"],
                                                 "path": "dirlink/captura.txt"})
@@ -1552,6 +1598,94 @@ class TestHttpApi(Base):
         with urlopen(self.base + "/api/storage/health") as response:
             self.assertTrue(any(i["name"] == "evidence.json" for i in json.load(response)["issues"]))
 
+    def test_alpha_offline_journey_persists_without_promoting_simulation(self):
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        from app.lia import handoff
+        def api(method, path, body=None):
+            request = Request(self.base + path, method=method,
+                              data=None if body is None else json.dumps(body).encode("utf-8"),
+                              headers={"Content-Type": "application/json"})
+            with urlopen(request) as response:
+                return json.load(response)
+
+        project = api("POST", "/api/projects", {"name": "Jornada offline"})
+        pid = project["id"]
+        base = f"/api/projects/{pid}"
+        api("POST", base + "/bootstrap", {"answers": {"idea": "Cultivar ilhas", "platform": "PC"}})
+        self.assertIn("Cultivar ilhas", api("GET", base + "/docs/PROJECT_BRIEF.md")["content"])
+        with self.assertRaises(HTTPError) as error:
+            api("POST", base + "/bootstrap", {"answers": {"idea": "sobrescrever"}})
+        self.assertEqual(error.exception.code, 400)
+        gate = api("POST", base + "/stage", {"target": "mvp", "approved": True,
+                                                "note": "documentos revisados neste teste automatizado"})["gate"]
+        self.assertEqual(gate["stage"], "mvp")
+        mod = api("POST", base + "/modules", {"name": "Loop", "acceptance": ["controle"]})
+        task = api("POST", base + f"/modules/{mod['id']}/tasks", {
+            "name": "Mover", "objective": "Mover personagem", "permissions": ["leitura solicitada"]})
+        exec_path = base + f"/tasks/{mod['id']}/{task['id']}/execute"
+        preview = api("POST", exec_path, {"approved": False})
+        self.assertIsNone(preview["session"])
+        self.assertFalse((self.store.project_path(pid) / "sessions.json").exists())
+        with self.assertRaises(HTTPError) as error:
+            api("POST", exec_path, {"approved": True})
+        self.assertEqual(error.exception.code, 400)
+        result = api("POST", exec_path, {"approved": True,
+                                          "preview_digest": preview["preview_digest"]})
+        self.assertEqual(result["session"]["runtime_id"], "simulator")
+        self.assertEqual(result["session"]["validation_status"], "not_run")
+        self.assertEqual(api("GET", base + "/sessions")["sessions"], [result["session"]])
+        self.assertIn("EXECUTION_NOT_VERIFIED", {b["code"] for b in
+                      api("GET", base + "/stage")["gate"]["blockers"]})
+        check = api("POST", base + "/qa", {"target_ref": "task:" + task["id"],
+                                                  "criteria": "controle", "tool": "teste futuro",
+                                                  "result": "planejado"})
+        folder = self.store.project_path(pid)
+        (folder / "captura.txt").write_text("metadados locais, não teste executado")
+        evidence = api("POST", base + "/evidence", {"target_ref": "task:" + task["id"],
+                                                      "qa_id": check["id"], "path": "captura.txt"})
+        self.assertFalse(evidence["verified_result"])
+        self.assertEqual(api("GET", base + "/evidence")["evidence"][0]["integrity"], "intact")
+        handoff_preview = api("POST", base + "/handoff/preview", {
+            "module_id": mod["id"], "task_id": task["id"]})
+        self.assertIn(result["session"]["id"], handoff_preview["content"])
+        self.assertFalse(api("POST", base + "/handoff", {
+            "module_id": mod["id"], "task_id": task["id"],
+            "digest": handoff_preview["digest"], "confirm": True})["stale"])
+        release_state = api("PUT", base + "/release", {"state": "pronto_para_build"})
+        self.assertFalse(release_state["published"])
+        self.assertTrue(api("GET", base + "/handoff")["stale"])  # JOURNAL mudou
+        fresh_handoff = api("POST", base + "/handoff/preview", {
+            "module_id": mod["id"], "task_id": task["id"]})
+        api("POST", base + "/handoff", {"module_id": mod["id"], "task_id": task["id"],
+                                         "digest": fresh_handoff["digest"], "confirm": True,
+                                         "replace": True})
+        self.assertEqual(api("GET", base)["modules"][0]["tasks"][0]["execution_status"], "simulated")
+        dest = Path(api("POST", base + "/export", {"dest_dir": str(Path(self.tmp) / "exports")})["path"])
+        self.assertTrue((dest / "sessions.json").is_file())
+        self.assertTrue((dest / "HANDOFF.md").is_file())
+        reloaded = storage.Storage(Path(self.tmp))
+        self.assertFalse(handoff.get_saved(reloaded, pid)["stale"])
+        self.assertEqual(len(reloaded.read_structured(pid, "sessions.json")), 1)
+        self.assertEqual(api("GET", "/api/storage/health")["issues"], [])
+
+    def test_bootstrap_api_rejects_second_generation_without_losing_manual_edits(self):
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        pid = self.store.create_project("Wizard protegido")["id"]
+        endpoint = self.base + f"/api/projects/{pid}/bootstrap"
+        def post(idea):
+            return Request(endpoint, data=json.dumps({"answers": {"idea": idea}}).encode(),
+                           headers={"Content-Type": "application/json"})
+        with urlopen(post("Primeira ideia")) as response:
+            self.assertEqual(response.status, 201)
+        self.store.write_doc(pid, "GDD.md", "# Minha edição")
+        with self.assertRaises(HTTPError) as error:
+            urlopen(post("Segunda ideia"))
+        self.assertEqual(error.exception.code, 400)
+        self.assertEqual(self.store.read_doc(pid, "GDD.md"), "# Minha edição")
+        self.assertIn("Primeira ideia", self.store.read_doc(pid, "PROJECT_BRIEF.md"))
+
     def test_bad_wizard_planning_and_markdown_link_return_400_without_writes(self):
         from urllib.error import HTTPError
         from urllib.request import Request, urlopen
@@ -1571,7 +1705,7 @@ class TestHttpApi(Base):
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
             target.write_text("segredo fora do projeto")
-            (self.store.project_path(pid) / "GDD.md").symlink_to(target)
+            self.symlink_or_skip(self.store.project_path(pid) / "GDD.md", target)
             with self.assertRaises(HTTPError) as error:
                 urlopen(base + "/docs/GDD.md")
             self.assertEqual(error.exception.code, 400)

@@ -145,8 +145,18 @@ def _run_bootstrap(storage: Storage, project_id: str, answers: Dict[str, Any]) -
     # decisions.json participa do mesmo fluxo: detectar corrupção/backup inválido
     # antes de regravar qualquer documento. Não é transação entre processos.
     storage.preflight_structured_write(project_id, "decisions.json")
-    name = storage.get_entry(project_id)
-    proj_name = name["name"] if name else "projeto"
+    entry = storage.get_entry(project_id)
+    if not entry or entry.get("archived"):
+        raise StorageError("reabra o projeto antes de iniciar a Etapa 0")
+    if entry.get("stage", "preparation") != "preparation":
+        raise StorageError("Etapa 0 só pode ser iniciada na Preparação")
+    # O gerador é de uso único. A UI oculta o wizard após a geração, mas a API
+    # também deve proteger documentos editados e decisões registradas pelo Dev.
+    # Em caso de falha parcial, preservar o conteúdo para revisão manual.
+    generated = ("PROJECT_BRIEF.md", "GDD.md", "SCOPE.md", "REFERENCIAS.md", "DECISIONS.md")
+    if any((folder / doc).exists() for doc in generated) or (folder / "decisions.json").exists():
+        raise StorageError("Etapa 0 já iniciada; revise e edite documentos/decisões sem regenerá-los")
+    proj_name = entry["name"]
     idea = (answers.get("idea") or "").strip() or "_(ideia ainda não descrita — [em aberto])_"
     experience = (answers.get("experience") or "").strip() or "_(a definir — [em aberto])_"
     audience = (answers.get("audience") or "").strip()

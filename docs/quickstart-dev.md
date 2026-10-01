@@ -13,7 +13,9 @@ Abra `http://127.0.0.1:8080`. Tela inicial mostra projetos recentes, estado e pr
 2. Na aba **Etapa 0**, descreva a ideia em uma frase. Os demais campos são opcionais:
    o que não for preenchido vira `[em aberto]`.
 3. Clique **Gerar documentos da Etapa 0**. São criados `PROJECT_BRIEF`, `GDD`,
-   `SCOPE`, `DECISIONS`, `REFERENCIAS` — nenhum código de jogo é escrito.
+   `SCOPE`, `DECISIONS`, `REFERENCIAS` — nenhum código de jogo é escrito. A geração
+   é única: se já houver documento/decisões, não sobrescreva pelo wizard; edite
+   nas abas Documentos e Decisões. Falha parcial exige revisão manual.
 4. Aba **Decisões**: revise ou acrescente registros estruturados (rótulo escolhido
    pelo Dev); mudanças regeneram `DECISIONS.md`. Se o Markdown foi alterado
    manualmente, o Studio pede confirmação antes de substituí-lo. Recarregue se

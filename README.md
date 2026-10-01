@@ -16,9 +16,10 @@ supervisionáveis, sem substituir a direção criativa do Dev.
 - Gerenciamento de projetos (criar, renomear, arquivar, reabrir, excluir com confirmação).
 - JSON versionado, backup local da versão anterior, diagnóstico e recuperação
   com confirmação. Exportação manual de projeto com manifesto do índice.
-- **Etapa 0** guiada que gera documentos do jogo (brief, GDD, escopo, decisões,
-  referências) sem escrever gameplay. A skill `lia-game-project-bootstrap` é
-  consultável, mas o gerador ainda não usa seus templates diretamente.
+- **Etapa 0** guiada, de geração única, que cria documentos do jogo (brief, GDD,
+  escopo, decisões, referências) sem escrever gameplay ou sobrescrever edições do
+  Dev numa segunda chamada. A skill `lia-game-project-bootstrap` é consultável,
+  mas o gerador ainda não usa seus templates diretamente.
 - Edição de documentos Markdown e rótulos `confirmado/proposto/suposição/em aberto`.
 - Detecção de **conflitos** entre decisão confirmada e suposição/em-aberto; aba
   Decisões para registro e revisão humana, com proteção contra edição obsoleta e
@@ -67,12 +68,16 @@ confiável; ainda não há autenticação para publicação na internet. Abra a 
 **"Carregar exemplo demonstrativo"** na tela inicial. Projetos são salvos em
 `~/LiaStudioProjects` (configurável via `LIA_PROJECTS_DIR`).
 
-## Testes
+## Testar a Alpha
 ```bash
-python tests/test_core.py   # testes offline de núcleo/API
-node tests/test_ui.cjs       # regressão da UI, requer Node.js (opcional)
+python verify_alpha.py      # suíte Python + sintaxe; Node/UI quando disponível
+python run.py               # depois abra http://127.0.0.1:8080
 ```
-Veja `docs/testes-resultados.md` para os resultados e o walkthrough de interface.
+`python tests/test_core.py` e `node tests/test_ui.cjs` podem ser executados
+individualmente (Node.js é opcional). Para a primeira avaliação de uso, siga
+[`docs/ALPHA-ROTEIRO-DE-TESTE.md`](docs/ALPHA-ROTEIRO-DE-TESTE.md). Testes
+automatizados **não** constituem aceite do Dev nem validação Windows. Resultados
+históricos ficam em `docs/testes-resultados.md`.
 Backups `.bak` não substituem cópias em outro disco; veja `docs/armazenamento-privacidade.md`.
 
 ## Estrutura
@@ -80,7 +85,8 @@ Backups `.bak` não substituem cópias em outro disco; veja `docs/armazenamento-
   skills, provedores, execução simulada, QA, release, engines e conflitos).
 - `app/server.py` — API JSON + servidor HTTP (stdlib).
 - `app/static/` — interface (HTML/CSS/JS vanilla, sem build).
-- `.agents/skills/` — quatro skills canônicas; Etapa 0 reutilizada pelo app.
+- `.agents/skills/` — quatro skills documentais consultáveis; templates da Etapa 0
+  ainda não são a fonte do gerador (decisão D1 pendente).
 - `planejamento/` — documentos de visão e handoffs.
 - `docs/` — documentação da entrega.
 

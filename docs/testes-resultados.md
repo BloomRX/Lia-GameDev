@@ -91,6 +91,17 @@ alterado/ausente continua a aparecer como `changed`/`unavailable`.
 `python -m compileall -q app` e `git diff --check` → **OK**.
 Sem validação Windows, teste de uso nem execução real.
 
+### Candidata Alpha offline para teste humano — 2026-10-01
+`python verify_alpha.py` → **103 testes Python OK**, regressão JS e verificações
+de sintaxe Python/JS **OK** neste sandbox Linux. O smoke HTTP percorre criação,
+Etapa 0, estágio, planejamento, prévia/aprovação simulada, Session, QA planejado,
+evidência local, handoff, release documental, exportação e reload. Segunda chamada
+do wizard não substitui documentos manuais; projeto arquivado ou fora da
+Preparação não regenera Etapa 0. Todos os dados do smoke são temporários.
+`docs/ALPHA-ROTEIRO-DE-TESTE.md` é o plano para teste de uso do Dev no Windows,
+**ainda não executado**. Sem executável Windows, navegador real automatizado,
+Agent/Provider/Engine/Computer Use reais ou aceite humano.
+
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
 listar decisões (todas `em aberto`) → inserir decisão conflitante (plataforma

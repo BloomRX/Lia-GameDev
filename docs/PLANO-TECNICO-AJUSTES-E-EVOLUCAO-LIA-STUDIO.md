@@ -2304,6 +2304,7 @@ Sempre que uma decisão antiga for substituída, atualizar este documento e o do
 | 2026-10-01 | Revisão da proposta antes de confirmar simulação | Evitar aprovação de escopo/permissões alterados entre prévia e confirmação | API exige digest da prévia sob lock local; alterações no grafo, estágio ou tarefa forçam nova revisão. Não autentica o Dev nem concede permissões reais. |
 | 2026-10-01 | Falha de criação e escopo Multi-Agent | Evitar pasta vazia órfã sem antecipar um Orchestrator | Falha ao indexar projeto novo só remove pasta vazia e não indexada; se houver dados/estado incerto, preserva. Contrato Lead/Worker e budgets foram depois definidos em `AI-MULTI-AGENT-CONTRACT.md` (D4 resolvida); capacidade segue desligada na Alpha, nenhum Agent conectado. |
 | 2026-10-01 | Validação de metadados da evidência manual | Não expor alegação persistida de resultado verificado como se fosse prova | `evidence.json` passa por validação semântica na leitura, saúde e recuperação; campos extras/resultado forjado não são ecoados pela API, hash permanece apenas integridade local. |
+| 2026-10-01 | Alpha offline pronta para teste de uso | Consolidar fluxo local sem afirmar aceite/Windows | Wizard de uso único na API preserva documentos/decisões editados; smoke HTTP de ponta a ponta e `verify_alpha.py` rodam offline; roteiro `ALPHA-ROTEIRO-DE-TESTE.md` aguarda execução do Dev. Integrações reais, desktop `.exe` e validação Windows seguem fora do aceite atual. |
 
 Adicionar novas entradas sem apagar histórico importante.
 

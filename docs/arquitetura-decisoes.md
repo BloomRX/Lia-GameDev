@@ -249,6 +249,21 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   manualmente: revisar ou restaurar backup antes de registrar nova evidência.
   Nenhum hash, relato ou backup valida execução, QA ou resultado de Agent.
 
+## Decisão 19 — Wizard da Etapa 0 gera somente uma vez (2026-10-01)
+- O gerador atual **não** é uma ferramenta de migração/re-renderização de
+  documentos editados. A API recusa nova geração se qualquer um dos cinco
+  documentos de saída ou `decisions.json` já existir, se o projeto estiver
+  arquivado ou fora da Preparação. A UI já ocultava o wizard após o Brief, mas
+  isso não protegia chamadas diretas; decisões e documentos continuam editáveis
+  em seus fluxos próprios. Evita substituir texto do Dev sem prévia/consentimento.
+- Se uma gravação falhar entre arquivos, o estado parcial é preservado para
+  revisão manual/exportação; não prometer transação ou limpeza automática.
+  A escolha de parametrizar templates da Skill e autorizar uma futura regeneração
+  permanece separada (D1 em `DECISOES-PENDENTES-INTEGRACOES.md`).
+- Um smoke HTTP offline percorre os fluxos da Alpha e verifica persistência;
+  `verify_alpha.py` reúne os testes locais. O roteiro de uso humano está em
+  `ALPHA-ROTEIRO-DE-TESTE.md` e permanece **pendente** no Windows.
+
 ## Limites para integrações posteriores (2026-10-01)
 - O registro de questões pendentes está em `DECISOES-PENDENTES-INTEGRACOES.md`.
   Ele **não** escolhe backend, custo, credencial ou autoridade em nome do Dev.
