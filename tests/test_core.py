@@ -57,6 +57,48 @@ class TestStorage(Base):
         self.assertIsNotNone(self.store.get_entry(e["id"]))
         self.assertTrue((self.store.projects_dir / e["folder"]).exists())
 
+    def test_create_index_failure_cleans_only_unindexed_empty_folder(self):
+        with patch.object(self.store, "_write_index", side_effect=storage.StorageError("índice indisponível")):
+            with self.assertRaises(storage.StorageError):
+                self.store.create_project("Falha")
+        self.assertEqual(self.store.list_projects(), [])
+        self.assertFalse(any(p.is_dir() for p in self.store.projects_dir.iterdir()))
+
+        original = self.store._write_index
+        def written_then_failed(data):
+            original(data)
+            raise storage.StorageError("falha após salvar")
+        with patch.object(self.store, "_write_index", side_effect=written_then_failed):
+            with self.assertRaises(storage.StorageError):
+                self.store.create_project("Registrado")
+        registered = self.store.list_projects()
+        self.assertEqual(len(registered), 1)
+        self.assertTrue(self.store.project_path(registered[0]["id"]).is_dir())
+
+    def test_create_index_failure_preserves_nonempty_unindexed_folder(self):
+        def concurrent_file(data):
+            folder = Path(data["projects"][-1]["location"])
+            (folder / "manual.txt").write_text("não excluir")
+            raise storage.StorageError("índice indisponível")
+        with patch.object(self.store, "_write_index", side_effect=concurrent_file):
+            with self.assertRaises(storage.StorageError):
+                self.store.create_project("Revisar")
+        self.assertEqual(self.store.list_projects(), [])
+        remaining = list(self.store.projects_dir.glob("*/manual.txt"))
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0].read_text(), "não excluir")
+
+    def test_create_index_failure_preserves_folder_if_index_becomes_unreadable(self):
+        def corrupt_index(data):
+            self.store._index_path.write_text("{índice incompleto")
+            raise storage.StorageError("gravação interrompida")
+        with patch.object(self.store, "_write_index", side_effect=corrupt_index):
+            with self.assertRaises(storage.StorageError):
+                self.store.create_project("Estado incerto")
+        self.assertEqual(len([p for p in self.store.projects_dir.iterdir() if p.is_dir()]), 1)
+        with self.assertRaises(storage.StorageError):
+            self.store.list_projects()
+
     def test_docs_and_structured(self):
         e = self.store.create_project("Doc Test")
         self.store.write_doc(e["id"], "PROJECT_BRIEF.md", "# oi")

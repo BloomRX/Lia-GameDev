@@ -71,6 +71,15 @@ O digest não autentica usuário nem prova leitura humana. Testes de uso e no
 Windows permanecem pendentes; runtime/engine/provider/Computer Use reais não
 foram conectados.
 
+### Continuação de 2026-10-01 — integridade e contratos de Agents
+`python tests/test_core.py` → **97 testes OK**. Falha antes de gravar o índice
+não deixa pasta vazia órfã; falha após o índice já conter o projeto, se o índice
+ficar ilegível ou se a pasta receber conteúdo preserva dados para revisão.
+`node tests/test_ui.cjs`,
+`python -m compileall -q app`, `node --check app/static/app.js` e
+`git diff --check` → **OK**. D4 documenta decisões Multi-Agent ainda abertas,
+sem implantar Orchestrator ou alterar Sessions. Sem teste de uso/Windows.
+
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
 listar decisões (todas `em aberto`) → inserir decisão conflitante (plataforma

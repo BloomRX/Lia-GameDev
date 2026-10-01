@@ -225,6 +225,17 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   gastos ou validação de resultado. A Session permanece `simulated`/`not_run`/
   `not_verified`; Windows e teste humano permanecem pendentes.
 
+## Decisão 17 — Falha conservadora na criação de projeto (2026-10-01)
+- Se a gravação do índice falhar após criar a pasta, só remover a pasta **vazia**
+  quando o índice ainda for legível e não contiver o novo ID. Se o índice já
+  registrar o projeto, se estiver ilegível ou se houver arquivo na pasta, preservar
+  dados para revisão manual. Não apagar diretório com conteúdo nem prometer
+  transação entre processos/discos; o erro de criação continua visível ao Dev.
+- Testes injetam falha antes/depois de gravar o índice e uma pasta modificada
+  antes da falha. Esse ajuste de persistência não implementa Coordinator/Worker.
+  O contrato multiagente novo está refletido como decisões **pendentes** em
+  `DECISOES-PENDENTES-INTEGRACOES.md` (D4); não há delegação na Alpha.
+
 ## Limites para integrações posteriores (2026-10-01)
 - O registro de questões pendentes está em `DECISOES-PENDENTES-INTEGRACOES.md`.
   Ele **não** escolhe backend, custo, credencial ou autoridade em nome do Dev.

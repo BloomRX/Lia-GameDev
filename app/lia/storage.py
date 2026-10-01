@@ -177,7 +177,19 @@ class Storage:
                 "next_step": "Completar a Etapa 0 (preparação do jogo).",
             }
             idx["projects"].append(entry)
-            self._write_index(idx)
+            try:
+                self._write_index(idx)
+            except Exception:
+                # O diretório acaba de ser criado. Só remover se o índice
+                # legível NÃO o referenciar e ele continuar vazio; nunca apagar
+                # dados de outro processo nem pasta possivelmente registrada.
+                try:
+                    indexed = any(p["id"] == pid for p in self._read_index()["projects"])
+                    if not indexed:
+                        proj_dir.rmdir()
+                except (StorageError, OSError):
+                    pass  # estado incerto: preservar a pasta para revisão manual
+                raise
             return entry
 
     def update_entry(self, project_id: str, **fields) -> Dict[str, Any]:

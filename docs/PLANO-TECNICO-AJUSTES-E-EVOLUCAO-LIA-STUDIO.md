@@ -2302,6 +2302,7 @@ Sempre que uma decisão antiga for substituída, atualizar este documento e o do
 | 2026-10-01 | Decisões pendentes e preferências Alpha | Manter integrações reais desligadas enquanto a Alpha avança | `DECISOES-PENDENTES-INTEGRACOES.md` registra questões de parametrização da Skill, bridge, Computer Use e dependências de runtime; a UI usa catálogo de engine da API e mostra Unreal sem prometer adapter; modos/provider offline são validados sem chave, conexão ou custo. |
 | 2026-10-01 | Handoff com referência ao histórico simulado | Não perder o vínculo de tentativas sem inventar validação | Até cinco IDs/estados de Sessions da tarefa e contagem aparecem em `HANDOFF.md`; fingerprint de `sessions.json` invalida snapshot ao mudar o histórico. Não copia logs/prompts nem comprova execução real. |
 | 2026-10-01 | Revisão da proposta antes de confirmar simulação | Evitar aprovação de escopo/permissões alterados entre prévia e confirmação | API exige digest da prévia sob lock local; alterações no grafo, estágio ou tarefa forçam nova revisão. Não autentica o Dev nem concede permissões reais. |
+| 2026-10-01 | Falha de criação e escopo Multi-Agent | Evitar pasta vazia órfã sem antecipar um Orchestrator | Falha ao indexar projeto novo só remove pasta vazia e não indexada; se houver dados/estado incerto, preserva. Contrato Lead/Worker e budgets registrados como D4 pendente antes de ampliar Sessions; nenhum Agent conectado. |
 
 Adicionar novas entradas sem apagar histórico importante.
 

@@ -37,7 +37,9 @@
   simbólicos e tipos/conteúdos inválidos antes de ler ou gravar; a pasta do projeto
   não pode ser link simbólico nem apontar para fora da localização registrada no
   índice. As verificações e o lock são locais ao processo (sem transação entre
-  processos).
+  processos). Se criar um projeto falhar ao gravar o índice, o Studio remove apenas
+  a pasta recém-criada **vazia e não registrada**. Caso o índice já cite o projeto,
+  esteja ilegível ou a pasta tenha conteúdo, preserva-a para revisão manual.
 
 ## Backup / exportação e recuperação
 - Na Visão geral, **Exportar projeto** copia a pasta para um caminho absoluto novo
