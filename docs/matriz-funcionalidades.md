@@ -36,7 +36,7 @@ Legenda: ✅ implementado e testado · 🟡 implementado, não testado · 🔶 p
 | Item | Estado | Notas |
 |---|---|---|
 | Escolher tarefa, ver objetivo/permissões/verificar | ✅ | formulário de tarefa |
-| Separar proposta/aprovação/execução | ✅ | prévia sem resultado salvo → confirmação explícita → registro simulado com Session metadata; servidor reavalia bloqueios; Session `completed` não aprova tarefa/validação |
+| Separar proposta/aprovação/execução | ✅ | prévia sem resultado salvo → confirmação com digest atual da proposta → registro simulado com Session metadata; servidor reavalia bloqueios; Session `completed` não aprova tarefa/validação |
 | Diffs/resultado (arquivos) | 🟣 | simulado (sem agente real) |
 | Pausa/cancelamento/retomada | 🔶 | estado de tarefa editável e resumo de retomada; não existe cancelamento de execução em andamento |
 | Permissões claras + confirmação destrutiva | ✅ | modelo de `permissions` |

@@ -614,7 +614,7 @@ function projectExecute(pid, data) {
     <div class="card"><h2>Sessions recentes (somente leitura)</h2>${sessionsHtml}</div>`;
 }
 async function wireExecute(pid) {}
-const previewedTasks = new Set();
+const previewedTasks = new Map();
 function previewKey(pid, mid, tid) { return `${pid}:${mid}:${tid}`; }
 async function previewTask(pid, mid, tid) {
   const key = previewKey(pid, mid, tid);
@@ -626,17 +626,21 @@ async function previewTask(pid, mid, tid) {
     const pre = document.getElementById(`exec-${tid}`);
     pre.style.display = "block";
     pre.textContent = `${r.proposal}\n\n${r.blockers.length ? "Bloqueios: " + r.blockers.map(b=>b.message).join("; ") : "Aguardando aprovação explícita."}\n\n[${r.warning}]`;
-    if (!r.blockers.length) { previewedTasks.add(key); button.disabled = false; }
+    if (!r.blockers.length && r.preview_digest) {
+      previewedTasks.set(key, r.preview_digest);
+      button.disabled = false;
+    }
   } catch (e) { toast("Não foi possível obter a proposta: " + e.message); }
 }
 async function execTask(pid, mid, tid) {
   const key = previewKey(pid, mid, tid);
   if (!previewedTasks.has(key)) return toast("Leia a proposta antes de aprovar.");
   if (!confirm("Aprova registrar uma execução SIMULADA desta tarefa? Nenhum código será escrito.")) return;
+  const preview_digest = previewedTasks.get(key);
   previewedTasks.delete(key);
   document.getElementById(`approve-${tid}`).disabled = true;
   try {
-    const r = await api("POST", `/api/projects/${pid}/tasks/${mid}/${tid}/execute`, { approved: true });
+    const r = await api("POST", `/api/projects/${pid}/tasks/${mid}/${tid}/execute`, { approved: true, preview_digest });
     const pre = document.getElementById(`exec-${tid}`);
     pre.style.display = "block";
     pre.textContent = `${r.proposal}\n\n${r.simulated_result}\n\n[${r.warning}]${r.session ? `\n\nSession ${r.session.id}: fluxo simulado encerrado; validação não realizada e nenhuma evidência verificada.` : ""}`;

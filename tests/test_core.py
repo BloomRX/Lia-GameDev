@@ -28,6 +28,12 @@ class Base(unittest.TestCase):
         import shutil
         shutil.rmtree(self.tmp, ignore_errors=True)
 
+    def simulate_after_preview(self, pid, mid, tid):
+        from app.lia import execution
+        preview = execution.simulate_execution(self.store, pid, mid, tid, approved=False)
+        return execution.simulate_execution(self.store, pid, mid, tid, approved=True,
+                                            preview_digest=preview["preview_digest"])
+
 
 class TestDefaultProjectsDir(unittest.TestCase):
     def test_new_install_uses_studio_directory(self):
@@ -510,6 +516,37 @@ class TestPlanning(Base):
         self.assertIsNone(response["simulated_result"])
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
 
+    def test_simulation_approval_requires_current_preview_of_permissions_and_plan(self):
+        from app.lia import execution
+        pid = self.store.create_project("Escopo revisado")["id"]
+        m = planning.create_module(self.store, pid, {"name": "M"})
+        t = planning.create_task(self.store, pid, m["id"], {"name": "T", "permissions": ["ler"]})
+        old = execution.simulate_execution(self.store, pid, m["id"], t["id"])
+        self.assertEqual(len(old["preview_digest"]), 64)
+        folder = self.store.project_path(pid)
+        for invalid in (None, "", "0" * 64, 123, old["preview_digest"].upper()):
+            with self.assertRaises(storage.StorageError):
+                execution.simulate_execution(self.store, pid, m["id"], t["id"],
+                                             approved=True, preview_digest=invalid)
+        self.assertFalse((folder / sessions.NAME).exists())
+        planning.update_task(self.store, pid, m["id"], t["id"], {"permissions": ["ler", "escrever"]})
+        with self.assertRaisesRegex(storage.StorageError, "nova prévia"):
+            execution.simulate_execution(self.store, pid, m["id"], t["id"],
+                                         approved=True, preview_digest=old["preview_digest"])
+        self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
+        new = execution.simulate_execution(self.store, pid, m["id"], t["id"])
+        self.assertNotEqual(old["preview_digest"], new["preview_digest"])
+        self.assertIn("escrever", new["proposal"])
+        record = execution.simulate_execution(self.store, pid, m["id"], t["id"],
+                                              approved=True, preview_digest=new["preview_digest"])
+        self.assertEqual(record["session"]["execution_status"], "simulated")
+        self.assertFalse(record["session"]["verified_result"])
+        # A próxima confirmação exige revisão: a própria simulação mudou o estado.
+        with self.assertRaises(storage.StorageError):
+            execution.simulate_execution(self.store, pid, m["id"], t["id"],
+                                         approved=True, preview_digest=new["preview_digest"])
+        self.assertEqual(len(sessions.list_sessions(self.store, pid)), 1)
+
     def test_bad_planning_fields_rejected_before_persistence(self):
         pid = self.store.create_project("Planejamento protegido")["id"]
         for payload in ({"name": 42}, {"name": "  "}, {"name": "M", "acceptance": "critério"},
@@ -537,7 +574,7 @@ class TestPlanning(Base):
         m = planning.create_module(self.store, e["id"], {"name": "M", "acceptance": ["testável"]})
         t = planning.create_task(self.store, e["id"], m["id"], {"name": "T"})
         self.assertEqual(self.store.get_entry(e["id"])["phase"], "plan")
-        execution.simulate_execution(self.store, e["id"], m["id"], t["id"], approved=True)
+        self.simulate_after_preview(e["id"], m["id"], t["id"])
         task = planning.get_modules(self.store, e["id"])[0]["tasks"][0]
         self.assertEqual(task["execution_status"], "simulated")
         self.assertEqual(task["validation_status"], "not_run")
@@ -640,7 +677,7 @@ class TestSessions(Base):
         preview = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=False)
         self.assertIsNone(preview["session"])
         self.assertFalse((folder / sessions.NAME).exists())
-        result = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        result = self.simulate_after_preview(pid, mod["id"], task["id"])
         self.assertTrue(result["simulated"])
         s = result["session"]
         self.assertEqual((s["runtime_id"], s["state"], s["execution_status"]),
@@ -658,7 +695,7 @@ class TestSessions(Base):
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["validation_status"], "not_run")
         self.assertIn("EXECUTION_NOT_VERIFIED", {i["code"] for i in
                                              stages.evaluate(self.store, pid)["blockers"]})
-        again = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        again = self.simulate_after_preview(pid, mod["id"], task["id"])
         self.assertNotEqual(again["session"]["id"], s["id"])
         self.assertEqual(len(sessions.list_sessions(self.store, pid)), 2)
         planning.update_task(self.store, pid, mod["id"], task["id"], {"status": "pendente"})
@@ -675,7 +712,7 @@ class TestSessions(Base):
         history = folder / sessions.NAME
         history.write_text("{incompleto")
         with self.assertRaises(storage.StorageError):
-            execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+            self.simulate_after_preview(pid, mod["id"], task["id"])
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
         self.assertTrue(any(i["name"] == sessions.NAME for i in self.store.inspect_storage_issues()))
         history.unlink()
@@ -684,7 +721,7 @@ class TestSessions(Base):
             target.write_text("segredo externo")
             history.symlink_to(target)
             with self.assertRaises(storage.StorageError):
-                execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+                self.simulate_after_preview(pid, mod["id"], task["id"])
             self.assertEqual(target.read_text(), "segredo externo")
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
 
@@ -703,7 +740,7 @@ class TestSessions(Base):
         pid = self.store.create_project("Recuperar histórico")["id"]
         mod = planning.create_module(self.store, pid, {"name": "M"})
         task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
-        original = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)["session"]
+        original = self.simulate_after_preview(pid, mod["id"], task["id"])["session"]
         path = self.store.project_path(pid) / sessions.NAME
         path.write_text('{"schema_version": 2, "data": [{"id": "incompleto"}]}')
         issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == sessions.NAME)
@@ -720,7 +757,7 @@ class TestSessions(Base):
         second = self.store.create_project("Destino")["id"]
         mod = planning.create_module(self.store, first, {"name": "M"})
         task = planning.create_task(self.store, first, mod["id"], {"name": "T"})
-        session = execution.simulate_execution(self.store, first, mod["id"], task["id"], approved=True)["session"]
+        session = self.simulate_after_preview(first, mod["id"], task["id"])["session"]
         dst = self.store.project_path(second) / sessions.NAME
         # Cópia externa de JSON estruturalmente válido, mas de outro projeto.
         self.store.write_structured(second, sessions.NAME, [session])
@@ -738,13 +775,13 @@ class TestSessions(Base):
         pid = self.store.create_project("Session anterior")["id"]
         mod = planning.create_module(self.store, pid, {"name": "M"})
         task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
-        original = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)["session"]
+        original = self.simulate_after_preview(pid, mod["id"], task["id"])["session"]
         older = {k: v for k, v in original.items() if k != "computer_use_backend_id"}
         path = self.store.project_path(pid) / sessions.NAME
         path.write_text(json.dumps({"schema_version": 2, "data": [older]}))
         self.assertEqual(sessions.list_sessions(self.store, pid), [older])
         self.assertFalse(any(i["name"] == sessions.NAME for i in self.store.inspect_storage_issues()))
-        result = execution.simulate_execution(self.store, pid, mod["id"], task["id"], approved=True)
+        result = self.simulate_after_preview(pid, mod["id"], task["id"])
         self.assertIsNone(result["session"]["computer_use_backend_id"])
         self.assertEqual(len(sessions.list_sessions(self.store, pid)), 2)
 
@@ -792,7 +829,7 @@ class TestDependencyGraph(Base):
             with self.assertRaises(storage.StorageError):
                 execution.simulate_execution(self.store, pid, b["id"], t["id"], approved=approval)
         with self.assertRaises(storage.StorageError):
-            execution.simulate_execution(self.store, pid, b["id"], t["id"], approved=True)
+            self.simulate_after_preview(pid, b["id"], t["id"])
         self.assertEqual(planning.get_modules(self.store, pid)[1]["tasks"][0]["execution_status"], "not_run")
         self.assertIn("DEPENDENCY_NOT_READY", {x["code"] for x in
             planning.build_resume(self.store, pid)["module_blockers"][b["id"]]})
@@ -808,7 +845,7 @@ class TestDependencyGraph(Base):
         self.store.write_structured(pid, "modules.json", modules)
         planning.update_module(self.store, pid, a["id"], {"status": "concluído"})
         self.assertEqual(planning.module_blockers(planning.get_modules(self.store, pid), b["id"]), [])
-        execution.simulate_execution(self.store, pid, b["id"], t["id"], approved=True)
+        self.simulate_after_preview(pid, b["id"], t["id"])
         self.assertEqual(planning.get_modules(self.store, pid)[1]["tasks"][0]["execution_status"], "simulated")
         planning.update_module(self.store, pid, a["id"], {"status": "pendente"})
         self.assertIn("DEPENDENCY_NOT_READY", {x["code"] for x in
@@ -826,7 +863,7 @@ class TestDependencyGraph(Base):
         self.store.write_structured(pid, "modules.json", modules)  # fixture de referência antiga/inválida
         self.assertIn("DEPENDENCY_INVALID", {b["code"] for b in stages.evaluate(self.store, pid)["blockers"]})
         with self.assertRaises(storage.StorageError):
-            execution.simulate_execution(self.store, pid, m["id"], t["id"], approved=True)
+            self.simulate_after_preview(pid, m["id"], t["id"])
         planning.update_module(self.store, pid, m["id"], {"depends_on": []})
         self.assertEqual(planning.module_blockers(planning.get_modules(self.store, pid), m["id"]), [])
 
@@ -902,7 +939,7 @@ class TestHandoff(Base):
         # A prévia de execução não grava Session e não deve envelhecer o handoff.
         execution.simulate_execution(self.store, pid, m["id"], t["id"], approved=False)
         self.assertFalse(handoff.get_saved(self.store, pid)["stale"])
-        result = execution.simulate_execution(self.store, pid, m["id"], t["id"], approved=True)
+        result = self.simulate_after_preview(pid, m["id"], t["id"])
         sid = result["session"]["id"]
         self.assertTrue(handoff.get_saved(self.store, pid)["stale"])
         with self.assertRaises(storage.StorageError):
@@ -1111,7 +1148,7 @@ class TestStages(Base):
         stages.advance(self.store, pid, "mvp", True, "Etapa 0 revisada")
         m = planning.create_module(self.store, pid, {"name": "Loop", "acceptance": ["jogável"]})
         t = planning.create_task(self.store, pid, m["id"], {"name": "Mover"})
-        execution.simulate_execution(self.store, pid, m["id"], t["id"], approved=True)
+        self.simulate_after_preview(pid, m["id"], t["id"])
         qa.add_verification(self.store, pid, {"target": "loop", "result": "aprovado_dev",
                                                "criteria": "controle responde", "tool": "playtest manual",
                                                "evidence": "relato manual"})
@@ -1537,14 +1574,31 @@ class TestHttpApi(Base):
         task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
         base = self.base + f"/api/projects/{pid}"
         execute = base + f"/tasks/{mod['id']}/{task['id']}/execute"
-        def call(approved):
-            return Request(execute, data=json.dumps({"approved": approved}).encode(),
+        def call(approved, digest=None):
+            body = {"approved": approved}
+            if digest is not None:
+                body["preview_digest"] = digest
+            return Request(execute, data=json.dumps(body).encode(),
                            headers={"Content-Type": "application/json"})
         with urlopen(call(False)) as response:
-            self.assertIsNone(json.load(response)["session"])
+            preview = json.load(response)
+            self.assertIsNone(preview["session"])
+            self.assertEqual(len(preview["preview_digest"]), 64)
         with urlopen(base + "/sessions") as response:
             self.assertEqual(json.load(response)["sessions"], [])
-        with urlopen(call(True)) as response:
+        with self.assertRaises(HTTPError) as error:
+            urlopen(call(True))
+        self.assertEqual(error.exception.code, 400)
+        planning.update_task(self.store, pid, mod["id"], task["id"], {"permissions": ["arquivo"]})
+        with self.assertRaises(HTTPError) as error:
+            urlopen(call(True, preview["preview_digest"]))
+        self.assertEqual(error.exception.code, 400)
+        with urlopen(base + "/sessions") as response:
+            self.assertEqual(json.load(response)["sessions"], [])
+        with urlopen(call(False)) as response:
+            current = json.load(response)
+        self.assertNotEqual(preview["preview_digest"], current["preview_digest"])
+        with urlopen(call(True, current["preview_digest"])) as response:
             record = json.load(response)["session"]
         self.assertEqual(record["execution_status"], "simulated")
         self.assertFalse(record["verified_result"])

@@ -167,7 +167,9 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
         return planning.update_task(storage, pid, sub[1], sub[3], body)
 
     if method == "POST" and len(sub) == 4 and sub[0] == "tasks" and sub[3] == "execute":
-        return execution.simulate_execution(storage, pid, sub[1], sub[2], approved=body.get("approved", False))
+        return execution.simulate_execution(storage, pid, sub[1], sub[2],
+                                            approved=body.get("approved", False),
+                                            preview_digest=body.get("preview_digest"))
     if method == "GET" and sub == ["sessions"]:
         return {"sessions": sessions.list_sessions(storage, pid)}
 

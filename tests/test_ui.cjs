@@ -15,7 +15,7 @@ const context = {
   location: { hash: '#/home' },
   fetch: async (url, options) => {
     requests.push({ url, options });
-    return { ok: true, json: async () => ({ proposal: 'Proposta', simulated_result: options.body && JSON.parse(options.body).approved ? 'SIMULADO' : null, session: options.body && JSON.parse(options.body).approved ? {id: 'session-1'} : null, blockers: [], warning: 'Aviso' }) };
+    return { ok: true, json: async () => ({ proposal: 'Proposta', preview_digest: 'preview-v1', simulated_result: options.body && JSON.parse(options.body).approved ? 'SIMULADO' : null, session: options.body && JSON.parse(options.body).approved ? {id: 'session-1'} : null, blockers: [], warning: 'Aviso' }) };
   },
   clearTimeout, setTimeout: () => 1,
   confirm: () => true,
@@ -36,7 +36,7 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   assert.equal(approval.disabled, false);
   await context.execTask('project-1', 'module-1', 'task');
   assert.equal(requests[1].url, '/api/projects/project-1/tasks/module-1/task/execute');
-  assert.deepEqual(JSON.parse(requests[1].options.body), { approved: true });
+  assert.deepEqual(JSON.parse(requests[1].options.body), { approved: true, preview_digest: 'preview-v1' });
   assert.match(pre.textContent, /SIMULADO/);
   assert.match(pre.textContent, /Session session-1: fluxo simulado encerrado; validação não realizada/);
   assert.equal(approval.disabled, true);

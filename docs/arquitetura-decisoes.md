@@ -207,6 +207,24 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   disco pode exigir reconciliação manual; não declarar histórico completo nem
   execução verificada. Lia Project permanece opcional e fora do core.
 
+## Decisão 16 — Aprovação da simulação vinculada à prévia (2026-10-01)
+- **Problema:** a interface exigia a leitura da proposta, mas `approved: true`
+  podia ser enviado sem a prévia ou após mudanças de escopo/permissões.
+- **Escolha restrita à Alpha:** `approved: false` devolve `preview_digest`, SHA-256
+  de IDs, proposta, estágio, estado de arquivamento e grafo de módulos/tarefas (incluindo
+  permissões e bloqueios). `approved: true` exige esse valor; sob o lock local,
+  o servidor reavalia bloqueios e digest antes de escrever. A UI mantém o
+  digest apenas em memória e o descarta ao confirmar ou remontar a aba.
+  Prévia não persiste Session; uma mudança pede nova leitura e confirmação.
+- **Alternativas:** manter somente o bloqueio na UI permitiria cliente direto ou
+  aba desatualizada; gravar tokens/segredos de autorização exigiria nova política
+  e persistência. O hash não é autenticação, prova de leitura, segredo, nem
+  autorização de runtime real; uma prévia pode ser repetida se o estado for o
+  mesmo, e o lock não garante transações entre arquivos/processos.
+- **Escopo:** nenhuma mudança na política de Tool/MCP/Provider/Computer Use,
+  gastos ou validação de resultado. A Session permanece `simulated`/`not_run`/
+  `not_verified`; Windows e teste humano permanecem pendentes.
+
 ## Limites para integrações posteriores (2026-10-01)
 - O registro de questões pendentes está em `DECISOES-PENDENTES-INTEGRACOES.md`.
   Ele **não** escolhe backend, custo, credencial ou autoridade em nome do Dev.

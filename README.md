@@ -26,8 +26,9 @@ supervisionáveis, sem substituir a direção criativa do Dev.
 - Planejamento em módulos/tarefas com critérios de aceite, IDs estáveis e dependências verificadas; módulos dependentes não podem ter tarefas simuladas antes de as dependências registrarem conclusão, execução real, validação e revisão aprovadas. A simulação não gera nem comprova esses estados.
 - Estágios Preparação → MVP jogável → Produção → Entrega com gates e aprovação
   explícita. Sem execução real, o gate de saída do MVP permanece bloqueado.
-- Prévia de proposta sem gravação, seguida de aprovação explícita e execução
-  **simulada** (validação e revisão do resultado são separadas; sem código/serviço real).
+- Prévia de proposta sem gravação, seguida de aprovação explícita vinculada ao
+  digest atual do plano/permissões e execução **simulada** (validação e revisão do
+  resultado são separadas; sem código/serviço real).
   Cada confirmação nova registra uma Session de simulação com ID em `sessions.json`;
   conclusão da Session não comprova execução real, validação ou evidência.
 - QA/playtest com registro **manual** de verificações (planejado/executado/aprovado/falhou);

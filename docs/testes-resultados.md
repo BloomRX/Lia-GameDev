@@ -60,6 +60,17 @@ mesmo sem mudança no plano. Prévia de execução não envelhece o snapshot.
 `python -m compileall -q app` e `git diff --check` → **OK**.
 Sem testes de uso, Windows, engines ou provedores reais.
 
+### Continuação da Alpha em 2026-10-01
+`python tests/test_core.py` → **94 testes OK**. Aprovação da simulação sem
+prévia, com digest incorreto ou após mudança nas permissões é recusada sem
+criar Session; nova prévia permite a simulação. A API exige `preview_digest`
+e a UI o encaminha somente após mostrar a proposta.
+`node tests/test_ui.cjs`, `node --check app/static/app.js`,
+`python -m compileall -q app` e `git diff --check` → **OK**.
+O digest não autentica usuário nem prova leitura humana. Testes de uso e no
+Windows permanecem pendentes; runtime/engine/provider/Computer Use reais não
+foram conectados.
+
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
 listar decisões (todas `em aberto`) → inserir decisão conflitante (plataforma

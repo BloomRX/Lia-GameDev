@@ -47,8 +47,10 @@ a API pede nova revisão. Nada é enviado nem executado automaticamente.
 
 ## 4. Executar (simulado)
 - Aba **Execução**: clique **Ver proposta** antes de decidir. A prévia não grava
-  resultado; **Aprovar e simular** exige confirmação separada, reavalia bloqueios
-  e só então registra resultado **SIMULADO** (sem agente/engine reais, sem chamadas).
+  resultado; **Aprovar e simular** exige confirmação separada e um digest atual da
+  proposta. Se tarefa, permissões, estágio ou plano mudarem, leia uma nova prévia.
+  A API exige `preview_digest` junto de `approved: true`, reavalia bloqueios e só
+  então registra resultado **SIMULADO** (sem agente/engine reais, sem chamadas).
   A sessão aparece no histórico recente da mesma aba; `completed` significa apenas
   que o fluxo simulado terminou, **não** que a tarefa passou na validação. A API
   `GET /api/projects/<id>/sessions` lista o histórico; simulações anteriores a
