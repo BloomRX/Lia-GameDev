@@ -1,7 +1,7 @@
 # Lia Studio — Plano Técnico de Ajustes, Correções e Evolução
 
 > **Documento de trabalho para o agente de desenvolvimento**  
-> **Base auditada:** branch `arena/01a0ec59-lia-gamedev`  
+> **Base auditada:** alpha inicial
 > **Objetivo:** corrigir o que já existe, reorganizar o núcleo quando necessário e preparar a Lia Studio para evoluir de uma alpha demonstrativa para o produto desktop real.  
 > **Escopo deste documento:** arquitetura, código, modelo de dados, execução, skills, QA, segurança local, provedores, engines, testes, empacotamento e integração futura. **A discussão de visual/UI estética fica para uma etapa posterior e não deve ser usada como motivo para reescrever a interface agora.**
 
@@ -2120,28 +2120,28 @@ Somente mediante autorização explícita.
 
 ## Lote A — corrigir a alpha atual
 
-- [ ] Corrigir `execTask()`.
-- [ ] Corrigir `delTask()` / nomenclatura e comportamento.
-- [ ] Revisar erros de API/UI que quebram fluxos básicos.
-- [ ] Garantir que os testes atuais continuam passando.
-- [ ] Adicionar testes para as correções.
+- [x] Corrigir `execTask()` (teste JS em `tests/test_ui.cjs`).
+- [x] Renomear `delTask()` para `resetTask()` (reinicia status, não exclui).
+- [ ] Revisar erros de API/UI que quebram fluxos básicos (JSON malformado, método inválido, tipos do wizard/plano/docs/decisões e prévia/aprovação corrigidos; Markdown e pastas simbólicas recusadas com diagnóstico; edição de decisões com revisão, diagnóstico de entradas inválidas e confirmação antes de substituir Markdown manual; faltam teste de uso e varredura completa).
+- [x] Garantir que os testes atuais continuam passando.
+- [x] Adicionar regressão JS e testes de núcleo/API para correções.
 
 ## Lote B — corrigir modelo de estado
 
-- [ ] Separar project status / stage / health.
-- [ ] Separar task / execution / validation / approval.
-- [ ] Criar transições válidas.
-- [ ] Remover inferência simplista de fase em `_update_next_step()`.
-- [ ] Introduzir gates.
+- [x] Separar project status / stage / health (saúde calculada; estágio persistido).
+- [x] Separar task / execution / validation / approval (resultado criativo ainda sem fluxo real).
+- [ ] Ampliar transições válidas para runtime real; transição de estágio e estados simulados já guardados.
+- [x] Remover inferência simplista de fase em `_update_next_step()`; gates documentais e de dependências explícitos implementados, gates de runtime real ainda pendentes.
+- [ ] Completar gates de execução real; gate documental da Preparação e bloqueios do MVP/Produção implementados.
 
 ## Lote C — fortalecer persistência
 
-- [ ] Schemas versionados.
-- [ ] Whitelist de arquivos globais.
-- [ ] Recovery de JSON.
-- [ ] Separar engine config de release.
-- [ ] Definir source of truth.
-- [ ] IDs/relacionamentos consistentes.
+- [x] Schemas JSON versionados (v1 em leitura, v2 em escrita; schemas futuros bloqueados).
+- [x] Whitelist de arquivos globais (`lia_settings.json`).
+- [x] Recovery explícito de JSON com backup local e cópia do arquivo danificado.
+- [x] Separar engine config de release (dados novos; sem migração).
+- [x] Índice como fonte única de metadados (sem `meta.json` em novos projetos).
+- [x] IDs/relacionamentos consistentes para módulos/tarefas, `depends_on` e vínculo opcional de QA por ID; evidências externas e migração automática de alvos textuais ainda pendentes.
 
 ## Lote D — extrair o core
 
@@ -2150,8 +2150,8 @@ Somente mediante autorização explícita.
 - [ ] Task service.
 - [ ] Execution service.
 - [ ] Validation/QA service.
-- [ ] Evidence service.
-- [ ] Resume/handoff service.
+- [ ] Evidence service completo (registro local básico em `evidence.py`: ID, alvo estável, QA opcional, hash de arquivo relativo e integridade recalculada; captura automática, runner e verdict ainda pendentes).
+- [ ] Resume/handoff service completo (handoff básico isolado em `handoff.py`: snapshot `HANDOFF.md` por tarefa, prévia + confirmação, fonte reavaliada e indicador `stale`; resume ainda em `planning.py`; tentativa/evidência executável e skill runtime pendentes).
 
 ## Lote E — capabilities e adapters
 
@@ -2164,9 +2164,9 @@ Somente mediante autorização explícita.
 
 ## Lote F — skills
 
-- [ ] `lia-module-planning`.
-- [ ] `lia-task-handoff`.
-- [ ] `lia-project-resume`.
+- [x] `lia-module-planning` (SKILL.md documental; sem runtime).
+- [x] `lia-task-handoff` (SKILL.md documental; sem runtime).
+- [x] `lia-project-resume` (SKILL.md documental; sem runtime).
 - [ ] Skill registry.
 - [ ] Skill metadata/versioning.
 - [ ] Fluxo lesson → review → skill.
@@ -2288,6 +2288,15 @@ Sempre que uma decisão antiga for substituída, atualizar este documento e o do
 | Data | Decisão | Motivo | Impacto |
 |---|---|---|---|
 | 2026-09-30 | Documento inicial de evolução técnica | Consolidar auditoria e preparar evolução da alpha | Orienta próximos lotes |
+| 2026-09-30 | Nome Lia Studio e primeiro lote incremental | Sem dados legados; corrigir bugs e superfície local antes de integrações | Pasta padrão única; regressões UI/API; estados simulados separados; skills documentais consultáveis; desktop e runtime reais continuam pendentes |
+| 2026-09-30 | Estágios com gates explícitos | Evitar que simulações ou lista vazia de tarefas pareçam progresso validado | `stages.py`, API e pipeline na Visão geral; avanço da Preparação exige docs e aprovação; MVP/Produção ficam bloqueados sem executor real |
+| 2026-09-30 | IDs e dependências verificáveis | Não executar tarefa de módulo dependente antes de conclusão e validação do predecessor | IDs sem colisão nos registros novos; rejeição de IDs duplicados, dependências inexistentes/cíclicas; bloqueios derivados na API, gate, retomada e UI; QA pode vincular alvo por ID. Simulação não conclui/valida módulo; sem evidência real automática. |
+| 2026-09-30 | Persistência v2 e recuperação local | Evitar perda silenciosa por JSON inválido e divergência de metadados | Envelopes versionados, backup `.bak`, restauração confirmada, fonte única no índice, exportação com manifesto; backup externo e transações multi-arquivo pendentes |
+| 2026-09-30 | Revisão de aderência e afirmações verificáveis | Fechar divergências entre API, UI e documentação sem fingir implementação | Prévia separada da confirmação de simulação; JSON inválido retorna 400 sem gravar; QA não planejado exige critério/ferramenta/evidência; release só permite preparação documental e recusa declaração de publicação/build. Matriz/guia corrigidos; runner, artefatos, teste humano/Windows ainda ausentes. |
+| 2026-09-30 | Handoff revisável e retomada local | Permitir transferência explícita de tarefa por ID sem depender da conversa e sem fingir evidências | Handoff por tarefa gera Markdown após prévia e confirmação; rechecagem de fingerprint, indicador de desatualização e QA referenciado por ID. Não copia evidência bruta nem executa skill; revisão de segredos antes de compartilhar é humana. |
+| 2026-09-30 | Registro local de evidências (parcial) | Identificar arquivos por ID e detectar alterações sem confundir hash com validação | `evidence.json` v2, SHA-256 até 50 MB e caminho dentro do projeto sem links simbólicos; vínculo QA/target por ID, status de integridade derivado, API/UI/handoff; sem runner, verdict, execução real ou teste Windows. |
+| 2026-09-30 | Entrada e Markdown defensivos | Evitar 500 e leitura fora do projeto por links ou índice adulterado | Tipos rejeitados antes de escrita no wizard/plano/docs; links de Markdown e pasta do projeto recusados; índice com pasta inválida bloqueado em leitura/exclusão; diagnóstico de Markdown somente leitura. Não há transações multi-processo ou aceite Windows. |
+| 2026-09-30 | Decisões revisáveis | Permitir revisão humana de conflitos sem corromper o registro | Aba Decisões, API GET/POST/PUT por posição com revisão SHA-256 do JSON, diagnóstico/recovery de entradas inválidas e confirmação para substituir DECISIONS.md editado manualmente; wizard verifica decisions.json antes de gerar documentos. Sem transação multi-arquivo ou teste de uso/Windows. |
 
 Adicionar novas entradas sem apagar histórico importante.
 

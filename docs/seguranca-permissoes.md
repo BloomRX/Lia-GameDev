@@ -12,6 +12,21 @@
 - Não consulta nem altera memórias pessoais da Lia Waifu.
 - Não embute chaves/tokens no código, logs ou repositório.
 
+## Limites de entrada e arquivos locais
+- O wizard e os campos de planejamento rejeitam tipos inválidos com erro de
+  validação antes de gravar seus documentos/estado; não tratam objeto/lista como
+  texto. A API retorna 400 para essas entradas, sem converter silenciosamente.
+- Markdown e journal não seguem links simbólicos; índice com pasta inválida
+  impede leitura/exclusão do projeto, e a saúde do armazenamento informa problemas
+  sem restaurar Markdown automaticamente. O bloqueio em memória é por processo:
+  não é uma promessa de segurança contra edições concorrentes de outros processos.
+
+## Revisão de decisões
+- Decisões estruturadas só aceitam campos textuais e rótulos reconhecidos; salvar
+  uma revisão obsoleta falha sem sobrescrever o registro. A aba pede confirmação
+  antes de substituir `DECISIONS.md` alterado manualmente. A revisão por hash
+  não verifica a verdade ou a autoria do relato do Dev e não prova teste real.
+
 ## Credenciais (futuro)
 - Se um provedor for conectado, a chave deve vir do próprio Dev (campo em Configurações),
   preferencialmente via armazenamento seguro do sistema. Nunca em texto puro sem aviso e
@@ -23,5 +38,7 @@
   dessas ações reais é executada.
 
 ## Validação de informação volátil
-- Preços/quotas/regiões citados em provedores trazem fonte e data e **não** prometem
-  gratuidade permanente.
+- Preços/quotas/regiões do catálogo offline são indicativos: incluem fonte para
+  consulta, mas **não foram verificados automaticamente nem datados como atuais**.
+  Antes de conectar um provedor, confira informações vigentes na fonte; nenhuma
+  gratuidade permanente é prometida.

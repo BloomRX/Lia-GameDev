@@ -9,11 +9,10 @@ description: >
   alguém quiser começar, organizar ou documentar a ideia de um jogo — inclusive
   iniciantes sem experiência em programação. NÃO use para planejar módulos
   detalhados, executar tarefas de código, fazer handoff entre agentes ou retomar um
-  projeto já em andamento (essas são skills separadas da Lia Studio, ainda não
-  criadas nesta etapa).
+  projeto já em andamento (essas são skills separadas da Lia Studio).
 ---
 
-# lia-game-project-bootstrap
+# Preparação do projeto — Lia Studio
 
 **Etapa 0 — Preparar o jogo (trabalho documental, não implementa gameplay).**
 
@@ -30,11 +29,10 @@ pipeline ou vertical slice (veja `references/glossario-e-metodo.md`).
 
 ## 2. Quando NÃO usar
 
-- Planejar módulos/tarefas detalhados → skill futura `lia-module-planning`.
+- Planejar módulos/tarefas detalhados → skill `lia-module-planning`.
 - Executar uma tarefa de código → skill futura de execução supervisionável.
-- Handoff entre agentes/sessões → skill futura `lia-task-handoff`.
-- Retomar um projeto já em andamento → skill futura `lia-project-resume`.
-- (Essas ainda não foram criadas nesta slice; não as antecipe.)
+- Handoff entre agentes/sessões → skill `lia-task-handoff`.
+- Retomar um projeto já em andamento → skill `lia-project-resume`.
 
 ## 3. O que precisa ler (mínimo, sem carregar contexto irrelevante)
 

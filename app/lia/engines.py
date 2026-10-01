@@ -48,9 +48,9 @@ def get_catalog() -> List[Dict[str, Any]]:
 
 
 def get_profile(storage: Storage, project_id: str) -> Dict[str, Any]:
-    data = storage.read_structured(project_id, "release.json")
-    if isinstance(data, dict) and "engine_profile" in data:
-        return data["engine_profile"]
+    data = storage.read_structured(project_id, "engine_profile.json")
+    if isinstance(data, dict) and "id" in data:
+        return data
     return {"id": "generic", "name": "Genérico / agnóstico", "verified": True}
 
 
@@ -64,9 +64,5 @@ def set_profile(storage: Storage, project_id: str, engine_id: str) -> Dict[str, 
         "verified": cat[engine_id]["verified"],
         "note": cat[engine_id]["note"],
     }
-    release = storage.read_structured(project_id, "release.json")
-    if not isinstance(release, dict):
-        release = {}
-    release["engine_profile"] = profile
-    storage.write_structured(project_id, "release.json", release)
+    storage.write_structured(project_id, "engine_profile.json", profile)
     return profile

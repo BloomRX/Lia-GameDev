@@ -8,7 +8,7 @@ mesma servida aqui.
 
 Uso:
     python run.py            # porta 8080 (ou env PORT)
-    PORT=8080 python run.py
+    HOST=0.0.0.0 PORT=8080 python run.py  # somente para preview/rede confiável
 """
 import os
 import sys
@@ -21,7 +21,7 @@ from app import server  # noqa: E402
 
 def main() -> None:
     port = int(os.environ.get("PORT", "8080"))
-    server.run(host="0.0.0.0", port=port)
+    server.run(host=os.environ.get("HOST", "127.0.0.1"), port=port)
 
 
 if __name__ == "__main__":

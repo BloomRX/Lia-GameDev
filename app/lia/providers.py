@@ -4,17 +4,16 @@ IMPORTANTE: nada é conectado por padrão. Toda integração real está ausente 
 entrega; os adaptadores são entregues claramente marcados como "não conectado" e o
 modo demonstrativo NÃO alega inferência real. Nenhuma chave/token é armazenada em
 texto puro e nenhuma chamada paga é feita. Informações voláteis (preço/quota) trazem
-fonte e data e não prometem gratuidade permanente.
+fontes indicativas e não alegam verificação atual ou gratuidade permanente.
 """
 from __future__ import annotations
 
-from datetime import date
 from typing import Any, Dict, List
 
 from .storage import Storage
 
 SETTINGS_FILE = "lia_settings.json"
-_INFO_DATE = date.today().isoformat()
+# Catálogo indicativo offline; não usar a data de execução como se fosse uma verificação das fontes.
 
 
 def provider_catalog() -> List[Dict[str, Any]]:
@@ -41,7 +40,7 @@ def provider_catalog() -> List[Dict[str, Any]]:
             "cost": "Faixa gratuita existe para alguns modelos, mas muda — valide preço/quota no momento de conectar.",
             "data_egress": "Conteúdo da tarefa pode ser enviado ao provedor; informe isso antes de usar.",
             "source": "ai.google.dev/gemini-api/docs/pricing",
-            "note": f"Info volátil (verificada em {_INFO_DATE}); não prometemos gratuidade permanente.",
+            "note": "Informação indicativa, não verificada em tempo real; consulte preço e quota na fonte antes de conectar.",
         },
         {
             "id": "cloud-openrouter",
@@ -53,7 +52,7 @@ def provider_catalog() -> List[Dict[str, Any]]:
             "cost": "Modelos gratuitos listados sujeitos a limites; valide no momento de conectar.",
             "data_egress": "Conteúdo da tarefa pode ser enviado ao provedor.",
             "source": "openrouter.ai/docs/faq",
-            "note": f"Info volátil (verificada em {_INFO_DATE}).",
+            "note": "Informação indicativa, não verificada em tempo real; consulte preço e quota na fonte antes de conectar.",
         },
     ]
 

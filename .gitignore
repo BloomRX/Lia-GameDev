@@ -5,4 +5,6 @@ __pycache__/
 .pytest_cache/
 
 # Ambiente local da aplicação (projetos do Dev ficam fora do repo por padrão)
-LiaGameDevProjects/
+LiaStudioProjects/
+# Dados efêmeros do preview na Arena (nunca versionar projetos de teste)
+.arena/

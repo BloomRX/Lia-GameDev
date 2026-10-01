@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
-from .lia import bootstrap, conflicts, engines, execution, planning, providers, qa, release, templates_loader
+from .lia import bootstrap, conflicts, decisions as decisions_service, engines, evidence, execution, handoff, planning, providers, qa, release, skills, stages, templates_loader
 from .lia.storage import Storage, StorageError
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -26,14 +26,24 @@ storage = Storage()
 
 
 def _read_body(handler) -> Dict[str, Any]:
-    length = int(handler.headers.get("Content-Length", 0) or 0)
+    try:
+        length = int(handler.headers.get("Content-Length", 0) or 0)
+    except ValueError as exc:
+        raise StorageError("Content-Length inválido") from exc
+    if length < 0:
+        raise StorageError("Content-Length inválido")
+    if length > 4 * 1024 * 1024:
+        raise StorageError("requisição excede o limite de 4 MB")
     if length == 0:
         return {}
     raw = handler.rfile.read(length)
     try:
-        return json.loads(raw.decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
-        return {}
+        value = json.loads(raw.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise StorageError("corpo JSON inválido") from exc
+    if not isinstance(value, dict):
+        raise StorageError("corpo JSON deve ser um objeto")
+    return value
 
 
 def _send_json(handler, payload: Any, status: int = 200) -> None:
@@ -41,7 +51,6 @@ def _send_json(handler, payload: Any, status: int = 200) -> None:
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Content-Length", str(len(body)))
-    handler.send_header("Access-Control-Allow-Origin", "*")
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -67,10 +76,13 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
         return {"projects": storage.list_projects()}
 
     if method == "POST" and pid is None:
-        name = (body.get("name") or "").strip()
-        if not name:
+        name = body.get("name")
+        if not isinstance(name, str) or not name.strip():
             raise StorageError("nome obrigatório")
-        entry = storage.create_project(name, body.get("location"))
+        location = body.get("location")
+        if location is not None and not isinstance(location, str):
+            raise StorageError("local do projeto deve ser um caminho textual")
+        entry = storage.create_project(name.strip(), location)
         return entry, 201
 
     if pid is None:
@@ -83,12 +95,18 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
         decisions = storage.read_structured(pid, "decisions.json")
         modules = planning.get_modules(storage, pid)
         conflicts_list = conflicts.detect_conflicts(decisions)
+        gate = stages.evaluate(storage, pid)
         return {
             "entry": entry,
+            "stage_gate": gate,
+            "health": stages.health(storage, pid, gate),
             "docs": storage.list_docs(pid),
             "decisions": decisions,
+            "decisions_revision": decisions_service.revision(decisions),
+            "decisions_projection_modified": decisions_service.projection_modified(storage, pid, decisions),
             "conflicts": conflicts_list,
             "modules": modules,
+            "module_blockers": planning.dependency_report(modules),
             "qa": qa.get_verifications(storage, pid),
             "release": release.get_release(storage, pid),
             "resume": planning.build_resume(storage, pid),
@@ -97,8 +115,21 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
         }
 
     if method == "PUT" and not sub:
-        entry = storage.update_entry(pid, **{k: body[k] for k in ("name", "status", "phase", "next_step") if k in body})
-        return entry
+        if set(body) != {"name"}:
+            raise StorageError("edite apenas o nome aqui; estados exigem fluxos próprios")
+        if not isinstance(body["name"], str) or not body["name"].strip():
+            raise StorageError("nome obrigatório")
+        return storage.update_entry(pid, name=body["name"].strip())
+
+    if method == "POST" and sub == ["export"]:
+        return {"path": storage.export_project(pid, body.get("dest_dir"))}
+
+    if method == "GET" and sub == ["stage"]:
+        gate = stages.evaluate(storage, pid)
+        return {"gate": gate, "health": stages.health(storage, pid, gate)}
+    if method == "POST" and sub == ["stage"]:
+        gate = stages.advance(storage, pid, body.get("target"), body.get("approved"), body.get("note"))
+        return {"gate": gate, "health": stages.health(storage, pid, gate)}
 
     if method == "DELETE" and not sub:
         confirm = query.get("confirm", ["false"])[0].lower() == "true"
@@ -121,40 +152,41 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
         return result, 201
 
     if method == "GET" and sub == ["modules"]:
-        return {"modules": planning.get_modules(storage, pid)}
+        modules = planning.get_modules(storage, pid)
+        return {"modules": modules, "module_blockers": planning.dependency_report(modules)}
     if method == "POST" and sub == ["modules"]:
         return planning.create_module(storage, pid, body), 201
-    if method == "PUT" and sub[0] == "modules" and len(sub) == 2:
+    if method == "PUT" and sub and sub[0] == "modules" and len(sub) == 2:
         return planning.update_module(storage, pid, sub[1], body)
 
-    if method == "POST" and sub[0] == "modules" and len(sub) == 3 and sub[2] == "tasks":
+    if method == "POST" and sub and sub[0] == "modules" and len(sub) == 3 and sub[2] == "tasks":
         return planning.create_task(storage, pid, sub[1], body), 201
-    if method == "PUT" and sub[0] == "modules" and len(sub) == 4 and sub[2] == "tasks":
+    if method == "PUT" and sub and sub[0] == "modules" and len(sub) == 4 and sub[2] == "tasks":
         return planning.update_task(storage, pid, sub[1], sub[3], body)
 
     if method == "POST" and len(sub) == 4 and sub[0] == "tasks" and sub[3] == "execute":
-        return execution.simulate_execution(storage, pid, sub[1], sub[2], approved=bool(body.get("approved", False)))
+        return execution.simulate_execution(storage, pid, sub[1], sub[2], approved=body.get("approved", False))
 
     if method == "GET" and sub == ["conflicts"]:
         return {"conflicts": conflicts.detect_conflicts(storage.read_structured(pid, "decisions.json"))}
 
+    if method == "GET" and sub == ["decisions"]:
+        return decisions_service.snapshot(storage, pid)
     if method == "POST" and sub == ["decisions"]:
-        decisions = storage.read_structured(pid, "decisions.json")
-        decisions.append({
-            "topic": body.get("topic", "Decisão"),
-            "label": body.get("label", "em aberto"),
-            "value": body.get("value", ""),
-            "note": body.get("note", ""),
-        })
-        storage.write_structured(pid, "decisions.json", decisions)
-        storage.write_doc(pid, "DECISIONS.md", bootstrap.render_decisions_md(decisions))
-        return {"decisions": decisions}, 201
+        return decisions_service.save(storage, pid, body), 201
+    if method == "PUT" and len(sub) == 2 and sub[0] == "decisions":
+        return decisions_service.save(storage, pid, body, index=sub[1])
+
+    if method == "GET" and sub == ["evidence"]:
+        return {"evidence": evidence.list_records(storage, pid)}
+    if method == "POST" and sub == ["evidence"]:
+        return evidence.register(storage, pid, body), 201
 
     if method == "GET" and sub == ["qa"]:
         return {"qa": qa.get_verifications(storage, pid)}
     if method == "POST" and sub == ["qa"]:
         return qa.add_verification(storage, pid, body), 201
-    if method == "PUT" and sub[0] == "qa" and len(sub) == 2:
+    if method == "PUT" and sub and sub[0] == "qa" and len(sub) == 2:
         return qa.update_verification(storage, pid, sub[1], body)
 
     if method == "GET" and sub == ["release"]:
@@ -164,6 +196,15 @@ def api_projects(handler, pid: Optional[str], sub: list, method: str, body, quer
 
     if method == "GET" and sub == ["resume"]:
         return planning.build_resume(storage, pid)
+
+    if method == "GET" and sub == ["handoff"]:
+        return handoff.get_saved(storage, pid)
+    if method == "POST" and sub == ["handoff", "preview"]:
+        return handoff.preview(storage, pid, body.get("module_id"), body.get("task_id"))
+    if method == "POST" and sub == ["handoff"]:
+        return handoff.save(storage, pid, body.get("module_id"), body.get("task_id"),
+                            body.get("digest"), confirm=body.get("confirm"),
+                            replace=body.get("replace", False))
 
     if method == "GET" and sub == ["engines"]:
         return {"catalog": engines.get_catalog(), "profile": engines.get_profile(storage, pid)}
@@ -218,12 +259,21 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if parts == ["api", "health"]:
                 return {"ok": True, "app": "Lia Studio", "offline": True}, 200
+            if parts == ["api", "skills"] and method == "GET":
+                return {"skills": skills.list_skills()}, 200
+            if len(parts) == 3 and parts[:2] == ["api", "skills"] and method == "GET":
+                return skills.get_skill(parts[2]), 200
             if parts == ["api", "skill"]:
                 return {
                     "skill_exists": templates_loader.skill_exists(),
                     "steps": templates_loader.bootstrap_steps(),
                     "templates": templates_loader.list_templates(),
                 }, 200
+            if parts == ["api", "storage", "health"] and method == "GET":
+                return {"issues": storage.inspect_storage_issues()}, 200
+            if parts == ["api", "storage", "recover"] and method == "POST":
+                return storage.recover_json(body.get("name"), body.get("project_id"),
+                                            confirm=body.get("confirm")), 200
             if parts == ["api", "projects"]:
                 return api_projects(self, None, [], method, self._body, query)
             if len(parts) >= 3 and parts[0] == "api" and parts[1] == "projects":
@@ -247,7 +297,25 @@ class Handler(BaseHTTPRequestHandler):
             return {"error": f"erro interno: {e}"}, 500
 
     def _route(self):
-        self._body = _read_body(self)
+        # No modo local, recusar Host externo evita acesso por DNS rebinding.
+        # HOST=0.0.0.0 é opt-in para preview/rede confiável.
+        host = self.headers.get("Host", "").split(":")[0].lower()
+        if self.server.server_address[0] == "127.0.0.1" and host not in ("localhost", "127.0.0.1"):
+            _err(self, 403, "host não autorizado")
+            return
+        # Mutations must originate from this app. Plain CLI requests (no Origin)
+        # remain supported; cross-site browser forms cannot modify local projects.
+        if self.command in ("POST", "PUT", "DELETE"):
+            origin = self.headers.get("Origin")
+            host = self.headers.get("Host", "")
+            if (origin and origin not in (f"http://{host}", f"https://{host}")) or self.headers.get("Sec-Fetch-Site") == "cross-site":
+                _err(self, 403, "origem não autorizada")
+                return
+        try:
+            self._body = _read_body(self)
+        except StorageError as exc:
+            _err(self, 400, str(exc))
+            return
         parsed = urlparse(self.path)
         parts = [p for p in parsed.path.split("/") if p]
 
@@ -267,7 +335,7 @@ class Handler(BaseHTTPRequestHandler):
         if parts[0] == "static":
             rel = "/".join(parts[1:])
             candidate = (STATIC_DIR / rel).resolve()
-            if candidate.exists() and str(candidate).startswith(str(STATIC_DIR)):
+            if candidate.is_file() and STATIC_DIR in candidate.parents:
                 ctype = "text/css; charset=utf-8" if candidate.suffix == ".css" else "application/javascript; charset=utf-8"
                 if candidate.suffix == ".html":
                     ctype = "text/html; charset=utf-8"
@@ -289,7 +357,7 @@ class Handler(BaseHTTPRequestHandler):
         self._route()
 
 
-def run(host: str = "0.0.0.0", port: int = 8080) -> None:
+def run(host: str = "127.0.0.1", port: int = 8080) -> None:
     server = ThreadingHTTPServer((host, port), Handler)
     print(f"Lia Studio em http://{host}:{port}  (Ctrl+C para parar)")
     print(f"Projetos locais em: {storage.projects_dir}")
@@ -300,4 +368,4 @@ def run(host: str = "0.0.0.0", port: int = 8080) -> None:
 
 
 if __name__ == "__main__":
-    run(port=int(os.environ.get("PORT", "8080")))
+    run(host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "8080")))

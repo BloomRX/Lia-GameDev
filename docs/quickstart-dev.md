@@ -6,7 +6,7 @@ Este guia cobre os fluxos principais pela interface. Não exige conta externa.
 ```bash
 python run.py
 ```
-Abra `http://localhost:8080`. Tela inicial mostra projetos recentes, estado e próximo passo.
+Abra `http://127.0.0.1:8080`. Tela inicial mostra projetos recentes, estado e próximo passo.
 
 ## 2. Criar e preparar um projeto (Etapa 0)
 1. Clique **+ Novo projeto**, dê um nome e (opcional) uma pasta local.
@@ -14,30 +14,84 @@ Abra `http://localhost:8080`. Tela inicial mostra projetos recentes, estado e pr
    o que não for preenchido vira `[em aberto]`.
 3. Clique **Gerar documentos da Etapa 0**. São criados `PROJECT_BRIEF`, `GDD`,
    `SCOPE`, `DECISIONS`, `REFERENCIAS` — nenhum código de jogo é escrito.
-4. Aba **Documentos**: edite qualquer arquivo Markdown livremente e salve.
+4. Aba **Decisões**: revise ou acrescente registros estruturados (rótulo escolhido
+   pelo Dev); mudanças regeneram `DECISIONS.md`. Se o Markdown foi alterado
+   manualmente, o Studio pede confirmação antes de substituí-lo. Recarregue se
+   outra janela tiver atualizado o registro.
+5. Aba **Documentos**: edite qualquer arquivo Markdown livremente e salve.
+
+## Avanço de etapa (explícito)
+Na **Visão geral**, a pipeline mostra a etapa do jogo e os bloqueios do gate.
+A Etapa 0 exige documentos e uma ideia descrita; só depois de revisá-los o Dev
+pode confirmar o avanço ao MVP e registrar o motivo. **Gerar documentos não
+avança automaticamente.** Execução simulada e QA apenas registrado não comprovam
+um MVP jogável: a passagem para Produção continuará bloqueada até existir
+execução real com validação e aceite. A área chamada `Plano` é atividade, não etapa.
 
 ## 3. Planejar
-- Aba **Plano**: crie módulos (nome, descrição, critérios de aceite) e tarefas.
+- Aba **Plano**: crie módulos (nome, descrição, critérios de aceite) e tarefas. Escolha
+  dependências por ID; ciclos/referências inválidas são recusados. Um módulo dependente
+  só desbloqueia após a dependência registrar conclusão, execução real, validação e
+  revisão. A alpha não produz esses estados por simulação.
 - Cada tarefa tem objetivo, arquivos envolvidos, permissões e como verificar.
 
+## Handoff e retomada (snapshot local)
+Na aba **Handoff**, selecione uma tarefa por ID, leia a prévia e confirme antes de
+salvar `HANDOFF.md`. O arquivo reúne contexto, estados, decisões, dependências,
+permissões declaradas, bloqueios, referências de QA/evidência local e próximo passo;
+não contém conteúdo bruto de documentos, arquivos ou evidência QA. Confira possíveis segredos
+nos campos copiados (objetivo, decisões, caminhos etc.) antes de compartilhar.
+O resumo indica quando as fontes mudaram; documentos editados manualmente sem
+marcador não têm atualidade verificável. Se a fonte mudar entre prévia e confirmação,
+a API pede nova revisão. Nada é enviado nem executado automaticamente.
+
 ## 4. Executar (simulado)
-- Aba **Execução**: para cada tarefa, **Aprovar e simular execução** mostra a
-  proposta e um resultado **SIMULADO** (sem agente/engine reais, sem chamadas).
+- Aba **Execução**: clique **Ver proposta** antes de decidir. A prévia não grava
+  resultado; **Aprovar e simular** exige confirmação separada, reavalia bloqueios
+  e só então registra resultado **SIMULADO** (sem agente/engine reais, sem chamadas).
 
 ## 5. QA / Playtest
-- Aba **QA**: registre verificações com ferramenta, comando, data, evidência e
-  resultado (`planejado` · `executado` · `aprovado_dev` · `falhou`).
+- Aba **QA**: registre verificações com critério, ferramenta, comando (se houver),
+  data, evidência e resultado (`planejado` · `executado` · `aprovado_dev` · `falhou`).
+  Resultados não planejados exigem critério, ferramenta e evidência preenchidos;
+  o Studio não executa nem verifica o teste. `aprovado_dev` pede confirmação na UI.
+
+## Evidências locais (sem runner)
+Coloque o arquivo na **pasta do projeto** (ex.: `logs/teste.txt`) por conta própria.
+Na aba **Evidências**, escolha módulo/tarefa por ID, informe o caminho relativo com
+`/` e, se quiser, o ID de uma verificação QA com o mesmo alvo. O Studio calcula
+SHA-256 dos bytes (até 50 MB) e exibe `intact`, `changed` ou `unavailable` ao ler;
+não envia conteúdo ao navegador nem executa comandos. O hash não aprova
+QA nem comprova que o critério passou. Arquivos fora da pasta/links simbólicos são
+recusados. No preview remoto, a pasta é a do servidor, não do navegador. Em Windows,
+use caminhos relativos com `/`; o teste de uso Windows será feito depois pelo Dev.
 
 ## 6. Release
-- Aba **Release**: checklist, créditos/licenças e notas de versão. **Nada é publicado.**
+- Aba **Release**: checklist manual, créditos/licenças e notas. Apenas estados
+  `preparando` e `pronto_para_build`; **nenhum build é produzido/verificado e nada é
+  publicado**. Declarações antigas de build/publicação são exibidas como não
+  verificadas e precisam de reclassificação explícita antes de salvar.
 
 ## 7. Conflitos
 - Se uma decisão `confirmado` divergir de uma `suposição`/`em aberto`, a aba
-  **Visão geral** mostra um banner de conflito. O produto não escolhe silenciosamente.
+  **Visão geral** mostra um banner de conflito. Revise assunto, rótulo e valor na
+  aba **Decisões** e salve uma decisão humana; o produto não escolhe silenciosamente.
+  Uma edição de `DECISIONS.md` feita apenas em Documentos não modifica o JSON
+  estruturado nem resolve um conflito do gate.
 
 ## 8. Provedores / Engine
 - **Configurações** (topo) e aba **Configuração** do projeto: catálogo de provedores
   e perfil de engine. Tudo **offline/simulado** nesta alpha; nenhuma chave é gravada.
+
+## Explorar Skills
+Na barra superior ou na Home, escolha **Skills** para consultar as quatro instruções
+locais. O workspace é separado do projeto; não inicia um agente nem modifica arquivos.
+
+## Integridade e exportação
+Na Visão geral, **Exportar projeto** pede uma pasta absoluta **no computador que
+executa o Studio**. A área **Dados** mostra JSONs danificados e permite restaurar
+um backup local anterior com confirmação; o arquivo danificado é preservado. Em
+preview remoto, o destino de exportação é o servidor, não seu navegador.
 
 ## Dica
 Use **Carregar exemplo demonstrativo** na inicial para percorrer todos os fluxos com

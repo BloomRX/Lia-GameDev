@@ -9,18 +9,12 @@ quando necessário, pastas `templates/` e `references/`).
   desta fonte e mantida em sincronia, sem divergir.
 - Cada skill tem **uma** responsabilidade clara e aponta para as outras quando precisa.
 
-## Estado desta slice (fundação de skills)
-
-Implementada nesta etapa:
+## Skills disponíveis
 
 - `lia-game-project-bootstrap` — Etapa 0: preparar o jogo (documental, sem gameplay).
+- `lia-module-planning` — planejar módulos, tarefas, aceite e dependências.
+- `lia-task-handoff` — transferir trabalho com limites e evidências.
+- `lia-project-resume` — retomar o projeto a partir dos registros locais.
 
-Ainda **não** criadas (planejadas para slices seguintes, conforme
-`planejamento/primeira-slice-especificacao-das-skills.md`):
-
-- `lia-module-planning` — transformar a visão aprovada em módulos/tarefas.
-- `lia-task-handoff` — transferir tarefa/sessão com limites e evidências.
-- `lia-project-resume` — retomar projeto a partir dos documentos técnicos.
-
-Não houve construção de aplicativo, integração com a Lia Waifu, push para `main`,
-chamadas a serviços externos/pagos ou cópia de assets de terceiros nesta etapa.
+Todas são instruções locais revisáveis pelo Dev, independentes de um provedor.
+A biblioteca do Studio permite consultá-las, mas ainda não as aplica por um runtime.

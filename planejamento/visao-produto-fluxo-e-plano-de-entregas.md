@@ -18,7 +18,7 @@ A Lia Studio é uma ferramenta independente, utilizável diretamente por pessoas
 - A versão completa pretendida cobre o ciclo de desenvolvimento de jogos; slices de construção menores não reduzem o escopo final.
 - O usuário escolheu manter MIT para código/documentação de software: terceiros podem fazer forks e modificar suas próprias cópias. Nome, personagem Lia, identidade visual, logos e assets de marca precisam de política separada; forks não devem se apresentar como oficiais nem reivindicar propriedade da personagem.
 - Uma regra contra denegrir a personagem não vem automaticamente da licença MIT; se desejada, precisa ser tratada em política de marca/comunidade separada e revisada juridicamente.
-- O usuário pretende apagar e recriar o repositório público `BloomRX/Lia-GameDev` com o mesmo nome para começar com histórico novo. A outra sessão não deve apagar nem recriar o repositório; o usuário fará isso.
+- O nome público do produto é Lia Studio; o repositório de código e a branch de trabalho têm gestão própria.
 - A plataforma inicial será Windows, como aplicativo executável.
 - O núcleo da Lia Studio deve ser agnóstico a engine; perfis e conectores de Godot, Unity, MonoGame ou outras engines entram como módulos.
 - Dados de jogo e registros da Lia Studio serão local-first: no computador do usuário; Git/sincronização externa ficam opcionais e sob controle do Dev.
@@ -256,7 +256,7 @@ A primeira slice está definida: fundação/criação de skills antes de integra
 
 ## 11. Pacote para a outra sessão
 
-O prompt para entregar a primeira slice à outra sessão está preparado em `LiaGameDev-planejamento/handoff-primeira-slice-para-outra-sessao.md`. Ele condensa as decisões aprovadas e autoriza somente a implementação das quatro skills iniciais quando for enviado pelo Dev. Não autoriza construir o aplicativo completo, mexer na Lia Waifu, publicar, usar serviços pagos ou alterar `main`.
+O prompt para entregar a primeira slice à outra sessão está preparado em `planejamento/handoff-primeira-slice-para-outra-sessao.md`. Ele condensa as decisões aprovadas e autoriza somente a implementação das quatro skills iniciais quando for enviado pelo Dev. Não autoriza construir o aplicativo completo, mexer na Lia Waifu, publicar, usar serviços pagos ou alterar `main`.
 
 A visão do produto e o inventário das 14 skills permanecem nos documentos desta pasta. Escolhas fora da primeira slice (framework desktop, fornecedores exatos, integração técnica com Waifu e conectores de engine) continuam abertas e não devem ser antecipadas pela outra sessão.
 

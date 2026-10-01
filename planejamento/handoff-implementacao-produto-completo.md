@@ -26,21 +26,23 @@ não declare o produto completo nem um teste aprovado sem evidência verificáve
 ao final, deixe a aplicação iniciável e apresente-a em preview quando o ambiente permitir.
 O objetivo é uma tentativa ampla em uma entrega integrada, não fingir que um produto desta dimensão pode ser certificado como pronto para produção numa única sessão. Registre o que ficou real, parcial, simulado, não testado ou bloqueado.
 
+> **Histórico:** este handoff registra o escopo da alpha inicial. O estado atual deve ser verificado no código e no plano técnico, não presumido a partir deste texto.
+
 2. Fonte da verdade e pré-checagem
-Repositório: https://github.com/BloomRX/Lia-GameDev.
+Repositório: checkout atual da Lia Studio.
 
 Antes de editar, confirme o estado atual do repositório, remotes, branches e working tree. O último estado conhecido era:
 
 main recriada e enxuta, contendo README.md e planejamento/;
-branch pública arena/01a0ec59-lia-gamedev, com a primeira entrega lia-game-project-bootstrap, publicada e separada de main.
+a primeira entrega da skill `lia-game-project-bootstrap` ficou em uma branch anterior, separada de `main`.
 Esse estado pode ter mudado: verifique em vez de presumir. Não apagar/recriar o repositório, não limpar alterações alheias, não sobrescrever nem reescrever a branch existente. Faça o trabalho em uma nova branch de tarefa, preservando o conteúdo útil da branch de skills como base quando apropriado. Não editar main, não mesclar e não fazer force-push. Não faça push de uma branch nova sem autorização específica.
 
 Leia e reconcilie, nesta ordem:
 
-LiaGameDev-planejamento/visao-produto-fluxo-e-plano-de-entregas.md — visão e decisões do produto;
-LiaGameDev-planejamento/primeira-slice-especificacao-das-skills.md — skills planejadas e critérios documentais;
-LiaGameDev-planejamento/inventario-skills-e-recomendacoes.md — referências e limites de reutilização;
-LiaGameDev-planejamento/handoff-primeira-slice-para-outra-sessao.md — decisões históricas da primeira entrega; suas proibições de construar o app foram substituídas somente para esta tarefa por este handoff;
+planejamento/visao-produto-fluxo-e-plano-de-entregas.md — visão e decisões do produto;
+planejamento/primeira-slice-especificacao-das-skills.md — skills planejadas e critérios documentais;
+planejamento/inventario-skills-e-recomendacoes.md — referências e limites de reutilização;
+planejamento/handoff-primeira-slice-para-outra-sessao.md — decisões históricas da primeira entrega; suas proibições de construar o app foram substituídas somente para esta tarefa por este handoff;
 este handoff e todos os documentos/skills presentes no repositório.
 Se houver conflito entre uma decisão confirmada e uma proposta antiga, preservar a decisão confirmada e registrar a divergência. Se faltar detalhe reversível, escolher uma solução técnica simples, explicar a escolha em docs/decisions/ (ou local equivalente) e continuar; não transformar pendências de arquitetura em motivo para entregar somente um plano.
 

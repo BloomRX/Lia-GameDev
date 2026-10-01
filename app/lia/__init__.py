@@ -15,6 +15,11 @@ from . import execution
 from . import qa
 from . import release
 from . import conflicts
+from . import decisions
+from . import stages
+from . import skills
+from . import handoff
+from . import evidence
 
 __all__ = [
     "storage",
@@ -26,4 +31,9 @@ __all__ = [
     "qa",
     "release",
     "conflicts",
+    "decisions",
+    "stages",
+    "skills",
+    "handoff",
+    "evidence",
 ]

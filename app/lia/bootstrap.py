@@ -10,13 +10,34 @@ from datetime import date
 from typing import Any, Dict, List, Optional
 
 from . import templates_loader
-from .storage import Storage
+from .storage import Storage, StorageError
 
 LABELS = ["confirmado", "proposto", "suposição", "em aberto"]
 
 
 def _today() -> str:
     return date.today().isoformat()
+
+
+def _validate_answers(answers: Dict[str, Any]) -> None:
+    """Falhar antes de escrever qualquer documento se a entrada do wizard não for válida."""
+    if not isinstance(answers, dict):
+        raise StorageError("respostas da Etapa 0 devem ser um objeto")
+    for field in ("idea", "experience", "audience", "platform", "engine",
+                  "restrictions", "vertical_slice"):
+        value = answers.get(field)
+        if value is not None and not isinstance(value, str):
+            raise StorageError(f"campo da Etapa 0 deve ser texto: {field}")
+    pillars = answers.get("pillars")
+    if pillars is not None and (not isinstance(pillars, list) or
+                                any(not isinstance(v, str) for v in pillars)):
+        raise StorageError("pilares devem ser uma lista de textos")
+    references = answers.get("references")
+    if references is not None and (not isinstance(references, list) or any(
+        not isinstance(r, dict) or any(k in r and not isinstance(r[k], str)
+                                       for k in ("name", "origin", "use")) for r in references
+    )):
+        raise StorageError("referências devem ser uma lista de objetos com campos textuais")
 
 
 def _fmt_list(items: Optional[List[str]]) -> str:
@@ -109,6 +130,22 @@ def render_decisions_md(decs: List[Dict[str, str]]) -> str:
 
 
 def run_bootstrap(storage: Storage, project_id: str, answers: Dict[str, Any]) -> Dict[str, Any]:
+    _validate_answers(answers)
+    with storage.stage_lock:
+        return _run_bootstrap(storage, project_id, answers)
+
+
+def _run_bootstrap(storage: Storage, project_id: str, answers: Dict[str, Any]) -> Dict[str, Any]:
+    # Evita sobrescrever parte do wizard quando um documento/journal é um link.
+    folder = storage.project_path(project_id)
+    for doc in ("PROJECT_BRIEF.md", "GDD.md", "SCOPE.md", "REFERENCIAS.md",
+                "DECISIONS.md", "JOURNAL.md"):
+        path = folder / doc
+        if path.is_symlink() or (path.exists() and not path.is_file()):
+            raise StorageError(f"documento inválido para Etapa 0: {doc}")
+    # decisions.json participa do mesmo fluxo: detectar corrupção/backup inválido
+    # antes de regravar qualquer documento. Não é transação entre processos.
+    storage.preflight_structured_write(project_id, "decisions.json")
     name = storage.get_entry(project_id)
     proj_name = name["name"] if name else "projeto"
     idea = (answers.get("idea") or "").strip() or "_(ideia ainda não descrita — [em aberto])_"
@@ -267,12 +304,11 @@ def _fmt_refs(references: Optional[List[Dict[str, str]]]) -> str:
 
 
 def _append_journal(storage: Storage, project_id: str, text: str) -> None:
-    path = storage.project_path(project_id) / "JOURNAL.md"
-    header = "# Journal do projeto\n\n"
-    existing = path.read_text(encoding="utf-8") if path.exists() else ""
-    if not existing:
-        existing = header
-    from datetime import datetime, timezone
-    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    new_entry = f"\n## {stamp}\n- {text}\n"
-    storage.write_doc(project_id, "JOURNAL.md", existing + new_entry)
+    # A leitura e a gravação precisam compartilhar o lock para não perder entradas
+    # em requisições simultâneas; aplicar também as proteções de Markdown do storage.
+    with storage.stage_lock:
+        existing = storage.read_doc(project_id, "JOURNAL.md") or "# Journal do projeto\n\n"
+        from datetime import datetime, timezone
+        stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        new_entry = f"\n## {stamp}\n- {text}\n"
+        storage.write_doc(project_id, "JOURNAL.md", existing + new_entry)

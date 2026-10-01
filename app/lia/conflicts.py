@@ -8,10 +8,19 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from .storage import StorageError
+
 
 def detect_conflicts(decisions: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+    if not isinstance(decisions, list):
+        raise StorageError("registro de decisões inválido")
     by_topic: Dict[str, List[Dict[str, str]]] = {}
     for d in decisions:
+        if not isinstance(d, dict) or any(
+            field in d and not isinstance(d[field], str)
+            for field in ("topic", "label", "value", "note")
+        ):
+            raise StorageError("entrada inválida no registro de decisões; revise o JSON")
         topic = (d.get("topic") or "").strip().lower()
         if not topic:
             continue

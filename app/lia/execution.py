@@ -6,15 +6,10 @@ arquivos do projeto além do journal. A aprovação do Dev é separada da execu�
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from . import planning
-from .storage import Storage
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+from .storage import Storage, StorageError
 
 
 def simulate_execution(
@@ -24,7 +19,12 @@ def simulate_execution(
     task_id: str,
     approved: bool = False,
 ) -> Dict[str, Any]:
+    if type(approved) is not bool:
+        raise StorageError("aprovação deve ser um booleano")
     task = _find_task(storage, project_id, module_id, task_id)
+    blockers = planning.module_blockers(planning.get_modules(storage, project_id), module_id)
+    if approved and blockers:
+        raise StorageError("módulo bloqueado: " + "; ".join(b["message"] for b in blockers))
     proposal = (
         f"Proposta para '{task['name']}':\n"
         f"- Objetivo: {task.get('objective') or '(sem objetivo descrito)'}\n"
@@ -40,19 +40,16 @@ def simulate_execution(
     )
 
     if approved:
-        task["status"] = "não verificado"
-        task["result"] = simulated_result
-        planning.update_task(storage, project_id, module_id, task_id,
-                            {"status": "não verificado", "result": simulated_result})
-        _journal(storage, project_id,
-                 f"Execução SIMULADA aprovada para '{task['name']}' (sem agente real).")
+        planning.record_simulated_execution(storage, project_id, module_id, task_id, simulated_result)
     return {
         "task_id": task_id,
         "approved": approved,
-        "simulated": True,
+        "simulated": approved,
+        "blockers": blockers,
         "proposal": proposal,
-        "simulated_result": simulated_result,
-        "warning": "Execução simulada. Nenhum código foi escrito nem serviço chamado.",
+        "simulated_result": simulated_result if approved else None,
+        "warning": ("Execução simulada. Nenhum código foi escrito nem serviço chamado." if approved
+                    else "Apenas proposta; nenhum resultado foi registrado."),
     }
 
 
@@ -64,8 +61,3 @@ def _find_task(storage: Storage, project_id: str, module_id: str, task_id: str) 
                 if t["id"] == task_id:
                     return t
     raise planning.StorageError("tarefa não encontrada")
-
-
-def _journal(storage: Storage, project_id: str, text: str) -> None:
-    from .bootstrap import _append_journal
-    _append_journal(storage, project_id, text)
