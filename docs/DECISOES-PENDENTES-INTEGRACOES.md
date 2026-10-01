@@ -4,9 +4,10 @@
 >
 > Estas decisões bloqueiam **somente as etapas indicadas**. Correções e testes da Alpha offline podem continuar.
 
-## Contratos já estabelecidos (não redecidir sem motivo)
+## Contratos já estabelecidos
 
-- `AI-AGENTS-ARCHITECTURE.md`: Runtime, Role/Profile, Skill, MCP, Tool, Computer Use, Provider/Model, Session e orquestração são responsabilidades distintas. Multi-Agent/Lead → Worker é requisito futuro, não fluxo ativo na Alpha.
+- `AI-AGENTS-ARCHITECTURE.md`: Runtime, Role/Profile, Skill, MCP, Tool, Computer Use, Provider/Model, Session e orquestração são responsabilidades distintas. Multi-Agent é suportado pela arquitetura, mas **opcional na execução**.
+- `AI-MULTI-AGENT-CONTRACT.md`: Multi-Agent fica desligado por padrão no Alpha; quando habilitado, usa Task → Subtask → Handoff → Session → Worker Result, com budgets, isolamento e approval gates.
 - `AI-EXECUTION-ORCHESTRATION.md` e `EVIDENCE-AND-EXECUTION-HISTORY.md`: planejamento, autorização, processo, validação e evidência não são sinônimos; simulação não prova conclusão.
 - `AI-CONTEXT-AND-PERMISSIONS.md`: contexto e permissões efetivas mínimos; não repassar todo o ambiente ou credenciais.
 - `AI-PROVIDERS-FREE-FIRST.md`: começar sem pagamento, manter opções pagas voluntárias; nenhum fallback silencioso para custo potencial.
@@ -40,7 +41,7 @@
 
 ## D3 — Permissões e isolamento de Computer Use
 
-**Situação:** o contrato separa Computer Use de Tool/MCP/Runtime comum. Agent S e outros itens do catálogo são candidatos de pesquisa, **não** backends escolhidos. A Session simulada registra `computer_use_backend_id: null` quando o campo está presente.
+**Situação:** o contrato separa Computer Use de Tool/MCP/Runtime comum. Agent S e outros itens do catálogo são candidatos de pesquisa, **não** backends escolhidos.
 
 **Antes de executar automação de GUI:**
 1. Qual backend e licença/manutenção/compatibilidade (especialmente Windows) foram verificados? O backend é opcional e substituível?
@@ -51,20 +52,26 @@
 
 **Desbloqueia:** protótipo supervisionado de Computer Use, QA visual e operação de editor sem API. **Até decidir:** não instalar Agent S, não conectar MCP de automação nem conceder controle de desktop à Alpha.
 
-## D4 — Contrato e limites da orquestração Multi-Agent
+## D4 — Multi-Agent/Subagent
 
-**Situação:** `AI-AGENTS-ARCHITECTURE.md` agora exige suporte futuro a Lead/Worker, delegação estruturada, conflitos e budgets. A Alpha só produz uma Session terminal do `simulator` por confirmação; não cria subtarefas, perfis de Agents ou árvore de Sessions. Módulos do planejamento **não** são subtarefas de um Lead.
+**Situação:** **resolvida como decisão de produto e contrato** em `AI-MULTI-AGENT-CONTRACT.md`.
 
-**Antes de persistir uma árvore ou delegar trabalho:**
-1. Qual contrato versionado de Subtask/Handoff/Worker Result representa pai, filho, dependências, replanejamento, cancelamento e evidência sem transformar Runtime, Profile, Tool ou MCP em “Agent” genérico?
-2. Qual é a fonte de verdade para ownership e ciclo de vida de cada Session (inclusive falha parcial entre arquivos, retomada e referências órfãs) e qual política de migração/retroleitura se aplica às Sessions simuladas sem pai?
-3. Como o Coordinator impõe limites por árvore (profundidade, simultaneidade, tempo, tokens e custo), escopo de arquivos e permissões **sem** herança automática do Lead, com aprovação do Dev para ações de risco?
-4. Como detectar disputa de arquivos/engine/Git e validar/atribuir resultados de Workers sem merge silencioso nem promoção de simulação a QA/evidência real?
-5. Quais passos ficam automáticos versus exigem revisão do Dev, e como a UI distingue o Coordinator, o Lead, cada Worker, o runtime efetivo e as capacidades realmente conectadas?
+Decisões tomadas:
 
-**Desbloqueia:** desenho testável do Orchestrator e do histórico pai/filho, antes de qualquer worker real. **Até decidir:** não acrescentar `parent_session_id`, subtask graph ou delegação fictícia aos registros simulados; manter Session única explícita e `simulated`/`not_run`/`not_verified`.
+- Multi-Agent é suportado pela arquitetura, mas é **opcional** na execução.
+- Fica **desligado por padrão no Alpha**.
+- Pode ser ativado por projeto/preferência do usuário.
+- Tarefas simples devem preferir um Agent para evitar overhead de tokens, processos, memória e coordenação.
+- Quando habilitado, o Orchestrator pode usar Lead → Worker com Task → Subtask → Handoff → Session → Worker Result.
+- Permissões não são herdadas automaticamente.
+- Paralelismo só ocorre quando dependências e conflitos permitirem.
+- Falhas parciais preservam histórico/evidências e podem ser replanejadas dentro dos budgets.
+- A árvore possui limites de profundidade, filhos, concorrência, duração, tokens/custo e retries.
+- Ações de risco seguem approval gates.
 
-## Dependências adicionais para execução real (não resolvidas por este documento)
+**Desbloqueia:** implementação do Orchestrator e dos contratos de domínio. **Não é necessário criar uma árvore falsa de Sessions na simulação Alpha.**
+
+## Dependências adicionais para execução real
 
 | Etapa | Decisão ainda necessária | Estado seguro atual |
 |---|---|---|
