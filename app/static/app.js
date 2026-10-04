@@ -826,14 +826,36 @@ async function renderGlobalConfig() {
       <li>${esc(c.note)}</li>
     </ul></div>`).join("");
   view.innerHTML = `<h1>Configurações — provedores de IA</h1>
-    <div class="banner warn">Tudo é <b>offline e simulado</b> nesta alpha. Nenhuma chave é armazenada e nenhuma chamada paga é feita. Conectar um provedor real fica fora desta entrega.</div>
+    <div class="banner warn">A execução de tarefas continua <b>simulada</b>. Nenhuma chave é armazenada, nenhum modelo é iniciado e nenhuma chamada paga é feita. O diagnóstico opcional abaixo apenas consulta um serviço no computador que executa o Studio.</div>
     <div class="card"><h3>Modo de IA</h3>
       <select id="mode-sel">${["offline","local","cloud","combined"].map(m=>`<option ${m===settings.mode?"selected":""}>${m}</option>`).join("")}</select>
       <p class="muted">offline (padrão, sem inferência) · local (Ollama, guia) · cloud (Gemini/OpenRouter, guia) · combined (ambas, com cuidado de não duplicar dados).</p>
       <div class="row" style="margin-top:10px"><button onclick="saveMode()">Salvar modo</button></div>
     </div>
+    <div class="card"><h3>Diagnóstico manual: Ollama neste computador</h3>
+      <p>Consulta apenas a lista anunciada por <code>127.0.0.1:11434</code> no computador que executa o Studio. Em um preview remoto, não consulta o seu PC. Não envia documentos, não executa modelo e não ativa IA. Alguns modelos anunciados podem usar nuvem; a lista não comprova custo nem funcionamento.</p>
+      <button id="ollama-probe-button" class="ghost" onclick="probeOllama()">Verificar Ollama local (somente leitura)</button>
+      <div id="ollama-probe-result" class="muted" role="status" aria-live="polite"></div>
+    </div>
     <h2>Catálogo (não conectado)</h2>
     <div class="grid">${cat}</div>`;
+  window.probeOllama = async function () {
+    const button = document.getElementById("ollama-probe-button");
+    const result = document.getElementById("ollama-probe-result");
+    button.disabled = true;
+    result.textContent = "Consultando somente o serviço local…";
+    try {
+      const data = await api("POST", "/api/providers/local-ollama/probe", { confirm: true });
+      if (data.status === "detected") {
+        result.innerHTML = `<p>${esc(data.message)}</p>${data.models.length
+          ? `<ul>${data.models.map(name => `<li>${esc(name)}</li>`).join("")}</ul>`
+          : "<p>Nenhum modelo anunciado. Instale um modelo separadamente, se desejar.</p>"}`;
+      } else {
+        result.textContent = data.message;
+      }
+    } catch (e) { result.textContent = "Diagnóstico indisponível: " + e.message; }
+    finally { button.disabled = false; }
+  };
   window.saveMode = async function () {
     const mode = document.getElementById("mode-sel").value;
     try {

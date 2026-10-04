@@ -154,6 +154,16 @@ local-first, offline e simulada**, com as limitações descritas acima. Não há
 relato de execução pessoal do roteiro pelo Dev, e seu aceite não certifica os
 11 casos de symlink pulados, `.exe`, integração real ou prontidão para produção.
 
+### Primeiro incremento pós-Alpha: descoberta local Ollama — 2026-10-03
+`python verify_alpha.py` no sandbox Linux → **106 testes Python OK**, regressão
+JS e checagens de sintaxe OK. Os três testes novos usam serviço HTTP falso em
+loopback: confirmação obrigatória/same-origin, leitura opt-in sem proxy nem
+persistência, resposta malformada/grande e redirect recusados. A regressão JS
+verifica que a página não consulta Ollama automaticamente e que os nomes são
+escapados antes de aparecer na tela. **Nenhum serviço Ollama real foi acessado**,
+nenhum modelo executado; o diagnóstico novo ainda não foi retestado no Windows.
+Este incremento não altera o aceite anterior da Alpha.
+
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
 listar decisões (todas `em aberto`) → inserir decisão conflitante (plataforma

@@ -249,5 +249,27 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   await context.window.setEngine('project-1');
   assert.equal(requests.at(-1).url, '/api/projects/project-1/engines');
   assert.deepEqual(JSON.parse(requests.at(-1).options.body), {engine_id: 'unreal'});
+  const probeResult = {textContent: '', innerHTML: ''};
+  const probeButton = {disabled: false};
+  context.document.getElementById = id => ({view, toast,
+    'ollama-probe-button': probeButton, 'ollama-probe-result': probeResult})[id];
+  const configCalls = [];
+  context.fetch = async (url, options) => {
+    configCalls.push({url, options});
+    return {ok: true, json: async () => url === '/api/providers/settings'
+      ? {mode: 'offline'} : url === '/api/providers'
+        ? {catalog: []} : {status: 'detected', message: 'Ollama respondeu',
+          models: ['<img src=x onerror=alert(1)>'], connected: false}};
+  };
+  await context.renderGlobalConfig();
+  assert.match(view.innerHTML, /Verificar Ollama local/);
+  assert.deepEqual(configCalls.map(call => call.url), ['/api/providers/settings', '/api/providers']);
+  await context.window.probeOllama();
+  assert.equal(configCalls.at(-1).url, '/api/providers/local-ollama/probe');
+  assert.equal(configCalls.at(-1).options.method, 'POST');
+  assert.deepEqual(JSON.parse(configCalls.at(-1).options.body), {confirm: true});
+  assert.match(probeResult.innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.doesNotMatch(probeResult.innerHTML, /<img/);
+  assert.equal(probeButton.disabled, false);
   console.log('UI regression: OK');
 })().catch(error => { console.error(error); process.exitCode = 1; });

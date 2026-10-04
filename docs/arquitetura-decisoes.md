@@ -261,8 +261,9 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   A escolha de parametrizar templates da Skill e autorizar uma futura regeneração
   permanece separada (D1 em `DECISOES-PENDENTES-INTEGRACOES.md`).
 - Um smoke HTTP offline percorre os fluxos da Alpha e verifica persistência;
-  `verify_alpha.py` reúne os testes locais. O roteiro de uso humano está em
-  `ALPHA-ROTEIRO-DE-TESTE.md` e permanece **pendente** no Windows.
+  `verify_alpha.py` reúne os testes locais. O roteiro de uso está em
+  `ALPHA-ROTEIRO-DE-TESTE.md`; o Dev confirmou aceite da Alpha offline após
+  reteste pelo Copilot no Windows, com 11 casos de symlink pulados.
 
 ## Limites para integrações posteriores (2026-10-01)
 - O registro de questões pendentes está em `DECISOES-PENDENTES-INTEGRACOES.md`.
@@ -271,3 +272,37 @@ Skills locais podem ser lidas via API/SPA, não executadas automaticamente.
   conhecido) são apenas configuração offline. Entrada inválida/segredo em JSON
   não é aceita nem restaurada como configuração saudável; salvar a preferência
   não conecta provider, não habilita chaves e não faz inferência.
+
+## Decisão 20 — Descoberta opcional de Ollama local, sem inferência (2026-10-03)
+- **Marco após aceite da Alpha:** primeiro incremento reversível da próxima fase
+  Free-First. A configuração global oferece um botão explícito de diagnóstico que
+  consulta exclusivamente `GET http://127.0.0.1:11434/api/tags` **a partir do
+  computador que executa o Studio**, sem consultar na abertura, agendar polling,
+  iniciar processos, instalar/baixar modelos, enviar documentos ou fazer inferência.
+  O endpoint do Studio é POST e exige `confirm: true` literal, para não ativar o
+  diagnóstico por navegação/prefetch. O catálogo e `lia_settings.json` seguem
+  `not_connected`; nomes retornados são apenas anunciados pelo servidor local,
+  não prova de instalação/funcionamento local do modelo (Ollama também pode
+  anunciar modelos de nuvem), disponibilidade, custo ou segurança.
+- **Alternativas:** deixar o usuário verificar fora do Studio não ajuda no
+  onboarding; aceitar URL/host fornecido pelo navegador ampliaria SSRF e acesso à
+  rede/nuvem; iniciar geração agora exigiria decisões abertas de Runtime,
+  Provider/Model, custo, permissões, contexto e Session. Por isso, host fixo,
+  sem redirecionamentos, sem proxies de ambiente, com timeout e limite de bytes,
+  apenas nomes/contagem exibidos e nenhum dado persistido. API e UI mantêm a
+  distinção entre descoberta do Provider e execução de Agent Runtime.
+- **Risco/autoridade:** o Dev autorizou avançar após aceitar a Alpha; isso não é
+  consentimento para executar agentes ou contratar serviços. A API local do Studio
+  não tem autenticação e nunca deve ser exposta a rede não confiável. Um serviço
+  malicioso na porta local ainda pode mentir sobre os nomes; são dados não
+  confiáveis escapados na UI e nunca promovidos a evidência. O diagnóstico não
+  atravessa a fronteira do Lia Project nem altera dados da Alpha.
+- **Critérios/falhas:** sem botão não há conexão; confirmação ausente/extra é
+  recusada, conexão indisponível/malformada/redirect/resposta excessiva vira
+  mensagem sem vazar payload; sucesso lista somente nomes, sem ativar execução.
+  Testes com servidor HTTP falso no loopback, sem Ollama instalado. Remover o
+  endpoint/botão reverte a descoberta sem migração de dados. Execução real,
+  credenciais, budgets, cancelamento, evidência e opções pagas permanecem
+  **bloqueados** pelas decisões em `DECISOES-PENDENTES-INTEGRACOES.md`.
+- **Fonte do endpoint:** https://docs.ollama.com/api/tags (GET `/api/tags`,
+  resposta JSON com lista `models[].name`; consultado em 2026-10-03).

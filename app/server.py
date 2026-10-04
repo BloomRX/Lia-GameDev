@@ -1,8 +1,9 @@
 """Servidor HTTP da Lia Studio (stdlib puro, sem dependências de terceiros).
 
-Serve a interface (SPA em app/static) e a API JSON em /api. Tudo roda localmente;
-nenhuma chamada externa é feita. Pode ser envolvido por Tauri/Electron para o
-destino Windows, ou simplesmente executado com `python run.py`.
+Serve a interface (SPA em app/static) e a API JSON em /api. Por padrão não faz
+chamadas de rede; o diagnóstico opcional de Ollama consulta somente o loopback
+a pedido do Dev, sem inferência. Pode ser empacotado para Windows no futuro,
+ou simplesmente executado com `python run.py`.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
-from .lia import bootstrap, conflicts, decisions as decisions_service, engines, evidence, execution, handoff, planning, providers, qa, release, sessions, skills, stages, templates_loader
+from .lia import bootstrap, conflicts, decisions as decisions_service, engines, evidence, execution, handoff, ollama_discovery, planning, providers, qa, release, sessions, skills, stages, templates_loader
 from .lia.storage import Storage, StorageError
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -292,6 +293,10 @@ class Handler(BaseHTTPRequestHandler):
                 return providers.get_settings(storage), 200
             if parts == ["api", "providers", "settings"] and method == "PUT":
                 return providers.set_settings(storage, self._body), 200
+            if parts == ["api", "providers", "local-ollama", "probe"] and method == "POST":
+                if set(body) != {"confirm"}:
+                    raise StorageError("envie somente a confirmação do diagnóstico local")
+                return ollama_discovery.probe_local_ollama(body["confirm"]), 200
             if parts == ["api", "example"] and method == "POST":
                 return create_example_project(), 201
             return None

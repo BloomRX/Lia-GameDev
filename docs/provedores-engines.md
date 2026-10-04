@@ -1,13 +1,15 @@
 # Provedores de IA e engines — suportados, requisitos e o que é simulado
 
-Provedores permanecem **offline/não conectados**; tarefas só têm execução
-simulada. Perfis de engine são metadados de planejamento, não adapters funcionais.
+Provedores permanecem **não conectados para inferência**; tarefas só têm
+execução simulada. Após o aceite da Alpha, há um diagnóstico **opcional** que
+consulta somente o Ollama no loopback para listar nomes de modelos, sem
+executá-los. Perfis de engine são metadados, não adapters funcionais.
 Nenhuma integração real com engine foi executada.
 
 ## Provedores de IA (catálogo)
 | ID | Tipo | Requer | Custo | Dados | Estado |
 |---|---|---|---|---|---|
-| local-ollama | local | Ollama no PC (Windows 10+) | Grátis (hardware) | Nenhum dado sai | não conectado / simulado |
+| local-ollama | serviço no loopback | Ollama no PC (Windows 10+) | Inferência local usa seu hardware; modelos anunciados podem usar nuvem/custo | Diagnóstico envia somente GET local; sem documentos | descoberta opcional; inferência não conectada |
 | cloud-gemini | nuvem | Conta Google + chave do Dev | Faixa gratuita variável | Conteúdo pode sair | não conectado / simulado |
 | cloud-openrouter | nuvem | Conta + chave do Dev | Modelos gratuitos sujeitos a limite | Conteúdo pode sair | não conectado / simulado |
 
@@ -15,7 +17,12 @@ Nenhuma integração real com engine foi executada.
 - Preferências aceitam apenas modo conhecido e provider do catálogo. `cloud` é
   escolha de interface, **não** conexão nem permissão de cobrança. A API rejeita
   campos de segredo/valores inválidos e o diagnóstico/recovery valida o JSON.
-  Nenhuma chave é armazenada; nenhuma chamada é feita. Conectar fica fora desta entrega.
+  Nenhuma chave é armazenada; nenhuma inferência é feita. O botão de diagnóstico
+  consulta `GET /api/tags` na porta fixa 11434 do loopback **do servidor Studio**,
+  uma vez por clique; não acessa o PC do navegador em preview remoto. Não envia
+  arquivos, não persiste a lista, não segue redirects e limita tamanho/tempo.
+  Um nome listado não prova que o modelo está instalado localmente ou é gratuito.
+  A conexão para inferência permanece fora deste incremento.
 
 ## Engines (perfis)
 | ID | Estado | Verificado? |

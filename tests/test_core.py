@@ -1973,6 +1973,117 @@ class TestHttpApi(Base):
         self.assertEqual(error.exception.code, 400)
 
 
+class TestOllamaDiscovery(Base):
+    def setUp(self):
+        super().setUp()
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        self.reply = (200, b'{"models": []}', {})
+        self.hits = []
+        outer = self
+        class FakeOllama(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                outer.hits.append(self.path)
+                status, data, headers = outer.reply
+                self.send_response(status)
+                for name, value in headers.items():
+                    self.send_header(name, value)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+        self.http = ThreadingHTTPServer(("127.0.0.1", 0), FakeOllama)
+        thread = threading.Thread(target=self.http.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(thread.join, 5)
+        self.addCleanup(self.http.server_close)
+        self.addCleanup(self.http.shutdown)
+        self.url = f"http://127.0.0.1:{self.http.server_address[1]}/api/tags"
+
+    def test_opt_in_bounded_read_only_and_no_persistence(self):
+        from app.lia import ollama_discovery as probe
+        self.assertEqual(self.hits, [])
+        for invalid in (False, None, 1, "true"):
+            with self.subTest(invalid=invalid), self.assertRaises(storage.StorageError):
+                probe.probe_local_ollama(invalid)
+        self.assertEqual(self.hits, [])
+        raw = {"models": [{"name": "modelo-local:7b", "digest": "privado"},
+                          {"name": "modelo-local:7b"}], "secret": "não expor"}
+        self.reply = (200, json.dumps(raw).encode("utf-8"), {})
+        with patch.object(probe, "OLLAMA_TAGS_URL", self.url):
+            with patch.dict(os.environ, {"http_proxy": "http://127.0.0.1:9",
+                                         "HTTP_PROXY": "http://127.0.0.1:9"}):
+                result = probe.probe_local_ollama(True)
+        self.assertEqual(self.hits, ["/api/tags"])
+        self.assertEqual(result["status"], "detected")
+        self.assertEqual(result["models"], ["modelo-local:7b"])
+        self.assertEqual(result["count"], 1)
+        self.assertFalse(result["connected"] or result["inference_enabled"])
+        self.assertNotIn("privado", str(result))
+        self.assertFalse((self.store.projects_dir / "lia_settings.json").exists())
+
+    def test_unavailable_invalid_oversize_and_redirect_do_not_expose_details(self):
+        from app.lia import ollama_discovery as probe
+        with patch.object(probe, "OLLAMA_TAGS_URL", self.url):
+            for reply in ((200, b'{"models": ["not a model"]}', {}),
+                          (200, b'{"models": "wrong"}', {}),
+                          (200, json.dumps({"models": [{"name": "m"}] * (probe.MAX_MODELS + 1)}).encode(), {}),
+                          (200, b'{"models": [{"name":"unsafe\\nname"}]}', {}),
+                          (200, b'{' + b' ' * probe.MAX_BYTES + b'}', {}),
+                          (302, b'', {"Location": "https://external.example/secret"})):
+                with self.subTest(status=reply[0], length=len(reply[1])):
+                    self.reply = reply
+                    result = probe.probe_local_ollama(True)
+                    self.assertEqual(result["status"], "unavailable")
+                    self.assertEqual(result["models"], [])
+                    self.assertNotIn("secret", str(result))
+                    self.assertNotIn("external.example", str(result))
+        self.assertEqual(self.hits, ["/api/tags"] * 6)
+
+    def test_http_endpoint_requires_explicit_confirmation_and_same_origin(self):
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+        from app.lia import ollama_discovery as probe
+        import importlib
+        import threading
+        from http.server import ThreadingHTTPServer
+
+        with patch.dict(os.environ, {"LIA_PROJECTS_DIR": self.tmp}):
+            server = importlib.import_module("app.server")
+        with patch.object(server, "storage", self.store):
+            api_server = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+            thread = threading.Thread(target=api_server.serve_forever, daemon=True)
+            thread.start()
+            try:
+                url = f"http://127.0.0.1:{api_server.server_address[1]}/api/providers/local-ollama/probe"
+                with patch.object(probe, "OLLAMA_TAGS_URL", self.url):
+                    with self.assertRaises(HTTPError) as error:
+                        urlopen(url)
+                    self.assertEqual(error.exception.code, 404)
+                    for body in (b'{}', b'{"confirm":1}', b'{"confirm":true,"url":"http://example.com"}'):
+                        with self.assertRaises(HTTPError) as error:
+                            urlopen(Request(url, data=body, headers={"Content-Type": "application/json"}))
+                        self.assertEqual(error.exception.code, 400)
+                    self.assertEqual(self.hits, [])
+                    with self.assertRaises(HTTPError) as error:
+                        urlopen(Request(url, data=b'{"confirm":true}',
+                                        headers={"Origin": "https://evil.example"}))
+                    self.assertEqual(error.exception.code, 403)
+                    self.assertEqual(self.hits, [])
+                    with urlopen(Request(url, data=b'{"confirm":true}',
+                                         headers={"Content-Type": "application/json"})) as response:
+                        self.assertEqual(json.load(response)["status"], "detected")
+                    self.assertEqual(self.hits, ["/api/tags"])
+            finally:
+                api_server.shutdown()
+                api_server.server_close()
+                thread.join(5)
+
+
 class TestSkillReuse(Base):
     def test_skill_templates_present(self):
         import app.lia.templates_loader as tl

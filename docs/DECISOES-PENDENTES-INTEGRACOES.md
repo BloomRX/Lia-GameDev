@@ -1,8 +1,8 @@
 # Decisões pendentes antes das integrações — Lia Studio
 
-> Estado: **perguntas em aberto**, não autorização para conectar serviços nem executar ações reais. Revisão: 2026-10-01.
+> Estado: **perguntas em aberto** para execução real, não autorização para iniciar agentes, modelo ou operações externas. Revisão: 2026-10-03.
 >
-> Estas decisões bloqueiam **somente as etapas indicadas**. Correções e testes da Alpha offline podem continuar.
+> A Alpha offline/simulada foi aceita. O diagnóstico Ollama local e somente leitura (Decisão 20 em `arquitetura-decisoes.md`) não executa modelos; as decisões abaixo continuam bloqueando apenas as etapas indicadas.
 
 ## Contratos já estabelecidos
 
@@ -81,6 +81,6 @@ Decisões tomadas:
 
 ## Regra para destravar
 
-Registrar cada escolha em `docs/arquitetura-decisoes.md` **antes** de criar integração difícil de reverter. Incluir alternativas consideradas, responsável pela aprovação, ameaça/custo, consequência para dados existentes, critério de aceite e teste de falha. Se não houver resposta, manter a integração **desligada**; prosseguir apenas com correções offline, testes e documentação da Alpha.
+Registrar cada escolha em `docs/arquitetura-decisoes.md` **antes** de criar integração difícil de reverter. Incluir alternativas consideradas, responsável pela aprovação, ameaça/custo, consequência para dados existentes, critério de aceite e teste de falha. Se não houver resposta, manter a **execução real desligada**; é permitido evoluir descoberta local somente leitura e outras funções reversíveis sem credenciais/execução.
 
-**Não realizado:** teste de uso do Dev, validação Windows, teste completo de navegador, conexão de provider/MCP/engine/Computer Use e integração Lia Project.
+**Não realizado:** execução pessoal do roteiro pelo Dev (ele confirmou o aceite), 11 casos de symlink no Windows, `.exe` Windows, inferência por provider, execução de Agent/MCP/engine/Computer Use e bridge Lia Project. O Copilot concluiu reteste de navegador Windows para a Alpha; o diagnóstico Ollama novo ainda requer verificação de uso no Windows.

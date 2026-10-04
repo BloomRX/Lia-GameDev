@@ -40,8 +40,12 @@ supervisionáveis, sem substituir a direção criativa do Dev.
 - Preparação documental de build/release (checklist, créditos, notas) — **sem
   build nem publicação**; API não permite declarar build gerada ou publicação.
 - Preferências de provedores validadas (modo/provider do catálogo, sem credenciais),
-  sempre offline; perfis de engine exibidos do catálogo, incluindo Unreal não verificado.
-  Nenhum adapter ou provider real está conectado.
+  sem inferência; perfis de engine exibidos do catálogo, incluindo Unreal não verificado.
+  Nenhum adapter ou provider de inferência real está conectado.
+- **Após o aceite da Alpha:** diagnóstico opcional e somente leitura da lista de
+  modelos anunciados por Ollama no loopback **do computador que executa o Studio**.
+  Sem consulta automática, instalação, download, envio de documentos, inferência
+  ou mudança de modo. A lista pode incluir modelos de nuvem e não comprova custo.
 - Decisões que bloqueiam integrações futuras: `docs/DECISOES-PENDENTES-INTEGRACOES.md`.
 - Interface navegável (SPA) servida localmente, com preview no navegador.
 - Handoff explícito por tarefa: prévia, revisão e confirmação geram `HANDOFF.md`
@@ -50,7 +54,8 @@ supervisionáveis, sem substituir a direção criativa do Dev.
 - Biblioteca de quatro Skills locais consultáveis, separada dos projetos; aplicação por agente ainda não conectada.
 
 ## O que é apenas simulado / não implementado
-- Inferência real de IA (Ollama/Gemini/OpenRouter): apenas catálogo e modo; nada conectado.
+- Inferência real de IA (Ollama/Gemini/OpenRouter): somente catálogo/modo e
+  diagnóstico de disponibilidade Ollama sob demanda; nenhum modelo executado.
 - Integração real com engines (Unreal/Godot/Unity/MonoGame): perfis selecionáveis,
   mas adapters não implementados/verificados.
 - Empacotamento Windows (executável): a arquitetura prepara o alvo, mas o `.exe` não

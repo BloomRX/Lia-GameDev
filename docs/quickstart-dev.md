@@ -72,7 +72,8 @@ SHA-256 dos bytes (até 50 MB) e exibe `intact`, `changed` ou `unavailable` ao l
 não envia conteúdo ao navegador nem executa comandos. O hash não aprova
 QA nem comprova que o critério passou. Arquivos fora da pasta/links simbólicos são
 recusados. No preview remoto, a pasta é a do servidor, não do navegador. Em Windows,
-use caminhos relativos com `/`; o teste de uso Windows será feito depois pelo Dev.
+use caminhos relativos com `/`; o Copilot testou os fluxos no Windows e o Dev
+confirmou o aceite da Alpha, mas 11 testes de symlink foram pulados.
 
 ## 6. Release
 - Aba **Release**: checklist manual, créditos/licenças e notas. Apenas estados
@@ -93,6 +94,11 @@ use caminhos relativos com `/`; o teste de uso Windows será feito depois pelo D
   adapter verificado**; nenhum editor, build ou MCP é acionado. Modos/provider de
   IA são apenas preferências validadas: até `cloud` permanece **não conectado**,
   sem custo, chave ou inferência. Execuções de tarefas continuam simuladas.
+- Após o aceite da Alpha, a tela global oferece **Verificar Ollama local (somente
+  leitura)**. O botão consulta sob demanda `127.0.0.1:11434` no **computador que
+  executa o Studio**, não no navegador de um preview remoto. Retorna somente os
+  nomes que o serviço anuncia; não inicia modelo nem comprova se é local/gratuito.
+  Se Ollama não estiver ativo, a tela mostra indisponibilidade, sem alterar dados.
 
 ## Explorar Skills
 Na barra superior ou na Home, escolha **Skills** para consultar as quatro instruções
