@@ -4,15 +4,16 @@ Ferramenta da Lia para ajudar uma pessoa — inclusive sem experiência de progr
 a preparar, construir, testar, documentar e retomar projetos de jogos com agentes
 supervisionáveis, sem substituir a direção criativa do Dev.
 
-> **Estado atual (honesto): alpha integrada, local-first, offline.**
-> Desenvolvimento incremental conforme o plano técnico; **não está certificada
-> como pronta para produção** nem passou por aceite de uso do Dev. O núcleo
-> (preparação, planejamento, QA, release, armazenamento) é **real e local**.
+> **Estado atual: Alpha offline/local-first e simulada, com aceite confirmado pelo Dev em 2026-10-03.**
+> Aceite explicitamente comunicado pelo Dev após o reteste Windows pelo Copilot;
+> isso **não certifica o produto para produção** nem significa que o Dev executou
+> pessoalmente o roteiro. O núcleo (preparação, planejamento, QA, release,
+> armazenamento) é **real e local**.
 > A execução assistida e os provedores de IA são **simulados** e claramente
 > rotulados: não há agente de código nem engine conectados, e nenhuma chamada
 > paga ou externa é feita.
 
-## O que está implementado (testes automatizados, ainda sem aceite do Dev)
+## O que está implementado na Alpha aceita
 - Gerenciamento de projetos (criar, renomear, arquivar, reabrir, excluir com confirmação).
 - JSON versionado, backup local da versão anterior, diagnóstico e recuperação
   com confirmação. Exportação manual de projeto com manifesto do índice.
@@ -74,10 +75,11 @@ python verify_alpha.py      # suíte Python + sintaxe; Node/UI quando disponíve
 python run.py               # depois abra http://127.0.0.1:8080
 ```
 `python tests/test_core.py` e `node tests/test_ui.cjs` podem ser executados
-individualmente (Node.js é opcional). Para a primeira avaliação de uso, siga
-[`docs/ALPHA-ROTEIRO-DE-TESTE.md`](docs/ALPHA-ROTEIRO-DE-TESTE.md). Testes
-automatizados **não** constituem aceite do Dev nem validação Windows. Resultados
-históricos ficam em `docs/testes-resultados.md`.
+individualmente (Node.js é opcional). Para repetir o percurso de uso, siga
+[`docs/ALPHA-ROTEIRO-DE-TESTE.md`](docs/ALPHA-ROTEIRO-DE-TESTE.md). O Dev
+**concedeu aceite à Alpha** em 2026-10-03; isso é distinto dos testes do Copilot
+no Windows, que tiveram 11 casos de symlink pulados. Resultados e limitações
+ficam em `docs/testes-resultados.md`.
 Backups `.bak` não substituem cópias em outro disco; veja `docs/armazenamento-privacidade.md`.
 
 ## Estrutura

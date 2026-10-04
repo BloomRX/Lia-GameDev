@@ -1,7 +1,7 @@
 # Testes automatizados e registros de desenvolvimento
 
-> Os testes abaixo são da implementação, **não** de aceitação pelo usuário.
-> O reteste pelo Copilot no Windows passou nos fluxos antes bloqueados e na suíte disponível (11 testes de symlink pulados). Ainda falta aceite do Dev; veja os registros abaixo.
+> Os testes abaixo são da implementação, **não** são por si só aceite pelo usuário.
+> O reteste pelo Copilot no Windows passou nos fluxos antes bloqueados e na suíte disponível (11 testes de symlink pulados). O Dev **confirmou em conversa, em 2026-10-03, que já dera aceite à Alpha offline/simulada**; não inferimos aceite do teste. Veja os registros abaixo.
 
 Ambiente: Linux (sandbox), Python 3.x, sem dependências de terceiros. Data: 2026-09-29.
 
@@ -147,6 +147,13 @@ Saída integral: [ALPHA-VERIFY-OUTPUT-WINDOWS-2026-10-03.txt](ALPHA-VERIFY-OUTPU
 Isso fornece evidência de teste automatizado no Windows, **não** de aceite
 humano, execução real, cobertura dos casos pulados ou aplicativo `.exe`.
 
+### Aceite do Dev — 2026-10-03
+Após tomar conhecimento desse reteste, o Dev confirmou explicitamente em
+conversa que **já havia dado aceite à Alpha**. Registra-se o aceite da **Alpha
+local-first, offline e simulada**, com as limitações descritas acima. Não há
+relato de execução pessoal do roteiro pelo Dev, e seu aceite não certifica os
+11 casos de symlink pulados, `.exe`, integração real ou prontidão para produção.
+
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
 listar decisões (todas `em aberto`) → inserir decisão conflitante (plataforma
@@ -155,7 +162,7 @@ criar módulo + tarefa → `POST .../execute` retorna `simulated=true` → regis
 → `GET /release` retorna `published=false` com 6 itens de checklist → `POST /api/example`
 cria projeto de exemplo → `/` serve o HTML da interface. **Todos os passos OK.**
 
-## 3. Roteiro de teste de uso (aceite pelo Dev pendente; reteste pelo Copilot registrado acima)
+## 3. Roteiro de teste de uso (aceite do Dev registrado; reteste pelo Copilot acima)
 - Abrir `http://localhost:8080` → tela inicial com botões Novo / Exemplo.
 - "Carregar exemplo demonstrativo" popula projeto com docs, módulo e tarefa.
 - Navegar pelas abas (Visão geral, Etapa 0, Documentos, Plano, Execução, QA, Release,
@@ -172,13 +179,14 @@ cria projeto de exemplo → `/` serve o HTML da interface. **Todos os passos OK.
   e indisponibilidade aparecem, mas não alteram aprovação/execução.
 - Aba Configurações lista provedores com banner offline/simulado.
 
-A lista acima permanece como roteiro para aceite pelo Dev; consulte a execução
-e o reteste pelo Copilot registrados acima. Nenhuma linha desta lista é
-aprovação humana.
+A lista acima permanece como roteiro de referência para outras execuções;
+consulte a execução e o reteste pelo Copilot e a declaração explícita de aceite
+do Dev registrados acima. O aceite não foi inferido destas linhas.
 
 ## O que NÃO foi testado ou concluído
 - Empacotamento/execução como `.exe` Windows.
 - Os 11 casos de symlink pulados no reteste Windows (faltou privilégio para
   criar links); passaram no Linux, mas não há cobertura Windows desses casos.
 - Integração real com engine ou provedor de IA (fora do escopo da Alpha; tudo simulado).
-- Teste de uso/aceite pelo Dev.
+- Execução pessoal do roteiro pelo Dev não foi relatada; seu aceite explícito
+  da Alpha foi registrado separadamente acima.
