@@ -1,7 +1,7 @@
 # Lia Studio — Alpha offline: roteiro de teste de uso
 
-> **Situação (2026-10-01): pronta para o Dev experimentar, não aceita/validada no Windows.**
-> O smoke automatizado roda em diretórios temporários, mas este roteiro precisa ser executado e registrado por uma pessoa. Nenhum resultado abaixo está marcado como aprovado.
+> **Situação (2026-10-03): teste parcial pelo Copilot no Windows, com falhas e passos bloqueados; reteste da correção pendente. Alpha não aceita.**
+> O smoke automatizado roda em diretórios temporários. O relato da primeira execução está em [testes-resultados.md](testes-resultados.md#primeira-execução-pelo-copilot-no-windows--2026-10-03). A tabela abaixo é um modelo para **novo** teste, não um registro de aprovação pelo Dev.
 
 ## 1. Limite desta Alpha
 
@@ -23,12 +23,12 @@ O Studio funciona isolado do Lia Project. Projeto, documentos, planejamento, gat
 | 1 | Criar projeto novo | Aparece na Home; pasta em `LIA_PROJECTS_DIR`; sem conta nem chamada externa. | Pendente |
 | 2 | Gerar Etapa 0 com ideia, deixando um campo opcional vazio | Brief/GDD/Escopo/Decisões/Referências gerados; lacuna fica `[em aberto]`, não `confirmado`. | Pendente |
 | 3 | Editar `GDD.md` em Documentos, salvar e recarregar | Edição persiste. A Etapa 0 não é regenerada silenciosamente; revisão de decisões ocorre na aba própria. | Pendente |
-| 4 | Verificar gate em Visão geral; aprovar Preparação com nota | Só avança para MVP com docs/ideia e sem conflito; histórico registra nota e aprovação local. | Pendente |
+| 4 | Verificar gate em Visão geral; preencher **Motivo da aprovação do Dev**, confirmar avanço de Preparação | Só avança para MVP com docs/ideia e sem conflito; histórico registra nota e aprovação local. Testar pela UI, não apenas pela API. | Pendente |
 | 5 | Criar módulo/tarefa com critérios e permissões; ver proposta | Prévia não cria Session, não escreve código nem resultado. Permissões declaradas não são concedidas. | Pendente |
 | 6 | Aprovar simulação após ler proposta | Session `simulator` aparece; tarefa indica `simulated`, validação `not_run` e evidência `not_verified`; gate de MVP ainda bloqueado. | Pendente |
 | 7 | Registrar QA como `planejado`; registrar um arquivo local pequeno como evidência | QA é relato manual; arquivo mostra hash/integridade `intact`, sem validar critério. Edite/remova o arquivo e confirme `changed`/`unavailable`. | Pendente |
 | 8 | Gerar prévia do Handoff e salvar com confirmação | Menciona IDs/status de Sessions sem logs/segredos brutos; alterar Journal/plano o deixa desatualizado e requer nova prévia. | Pendente |
-| 9 | Preencher preparação de Release; exportar; reabrir app | Não há build/publicação; exportação contém documentos, JSONs, Sessions, Handoff; persistência/retomada funcionam após reinício. | Pendente |
+| 9 | Preencher preparação de Release; na Visão geral preencher **Pasta de destino absoluta**, exportar pela UI e conferir arquivos; reabrir app | Não há build/publicação; exportação contém documentos, JSONs, Sessions, Handoff; persistência/retomada funcionam após reinício. Exportar pela API isoladamente não aprova o fluxo visual. | Pendente |
 | 10 | Abrir Dados → Integridade | Estado saudável sem problemas no projeto novo. Para testar recuperação, use somente cópia descartável e confirme que backup válido exige confirmação. | Pendente |
 
 Anote sistema operacional/versão, Python/Node, horário, passos realmente feitos, problemas e capturas **sem segredos**. O Dev decide se a Alpha foi aceita; não inferir aceite dos testes automatizados.

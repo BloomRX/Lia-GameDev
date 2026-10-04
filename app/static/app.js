@@ -245,7 +245,9 @@ function projectOverview(pid, data) {
     ? `<ul class="clean">${gate.blockers.map(b => `<li>${esc(b.message)}</li>`).join("")}</ul>`
     : "";
   const approval = gate.status === "ready"
-    ? `<button onclick="advanceStage('${esc(pid)}','${esc(gate.next_stage)}')">Revisar e aprovar avanço para ${esc(gate.next_stage_label)}</button>`
+    ? `<label for="stage-note">Motivo da aprovação do Dev</label>
+       <input id="stage-note" type="text" placeholder="Por que esta etapa pode avançar?" />
+       <button onclick="advanceStage('${esc(pid)}','${esc(gate.next_stage)}')">Revisar e aprovar avanço para ${esc(gate.next_stage_label)}</button>`
     : gate.status === "complete" ? `<p class="muted">Última etapa. Publicação externa nunca é automática.</p>`
       : `<p class="muted">Gate bloqueado: resolva as pendências acima. Simulações não contam como implementação.</p>`;
   const history = gate.history.length
@@ -267,6 +269,8 @@ function projectOverview(pid, data) {
       ${blockers}${approval}${history}</div>
     ${conflictBanner}${dependencyBanner}
     <div class="card"><h3>Backup manual</h3><p>Copie este projeto e o estado atual do índice para uma nova pasta no computador que executa o Studio.</p>
+      <label for="export-dest">Pasta de destino absoluta no computador que executa o Studio</label>
+      <input id="export-dest" type="text" autocomplete="off" spellcheck="false" placeholder="Ex.: C:/Backup/LiaStudio ou /home/user/backup" />
       <button class="ghost" onclick="exportProject('${esc(pid)}')">Exportar projeto</button>
       <p id="export-result" class="muted" aria-live="polite"></p></div>
     <div class="banner info"><b>Próximo passo:</b> ${esc(data.entry.next_step || "—")}</div>
@@ -283,21 +287,21 @@ function projectOverview(pid, data) {
 }
 
 async function exportProject(pid) {
-  const dest = prompt("Pasta de destino no computador que executa a Lia Studio (caminho absoluto):");
-  if (!dest) return;
+  const dest = document.getElementById("export-dest").value.trim();
+  if (!dest) return toast("Informe uma pasta de destino absoluta antes de exportar.");
   try {
-    const result = await api("POST", `/api/projects/${pid}/export`, { dest_dir: dest.trim() });
+    const result = await api("POST", `/api/projects/${pid}/export`, { dest_dir: dest });
     document.getElementById("export-result").textContent = `Cópia criada em: ${result.path}. Guarde-a em local seguro.`;
     toast("Projeto exportado.");
   } catch (e) { toast("Falha na exportação: " + e.message); }
 }
 
 async function advanceStage(pid, target) {
+  const note = document.getElementById("stage-note").value.trim();
+  if (!note) return toast("O motivo da aprovação é obrigatório.");
   if (!confirm(`Avançar para ${STAGE_LABELS[target]}? Confirme apenas após revisar os documentos e critérios do gate.`)) return;
-  const note = prompt("Registre o motivo/decisão do Dev para avançar:");
-  if (!note || !note.trim()) return toast("O motivo da aprovação é obrigatório.");
   try {
-    await api("POST", `/api/projects/${pid}/stage`, { target, approved: true, note: note.trim() });
+    await api("POST", `/api/projects/${pid}/stage`, { target, approved: true, note });
     toast("Etapa aprovada e registrada.");
     await renderProject(pid, "overview");
   } catch (e) { toast("Gate bloqueado: " + e.message); }

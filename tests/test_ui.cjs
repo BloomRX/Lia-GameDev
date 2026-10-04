@@ -6,11 +6,14 @@ const vm = require('node:vm');
 const pre = { style: {}, textContent: '' };
 const approval = { disabled: true };
 const exportResult = { textContent: '' };
+const exportDest = { value: '' };
+const stageNote = { value: '' };
 const toast = { hidden: true, textContent: '' };
 const view = { innerHTML: '' };
 const requests = [];
 const context = {
-  document: { getElementById: id => ({ view, toast, 'exec-task': pre, 'approve-task': approval, 'export-result': exportResult })[id] },
+  document: { getElementById: id => ({ view, toast, 'exec-task': pre, 'approve-task': approval,
+    'export-result': exportResult, 'export-dest': exportDest, 'stage-note': stageNote })[id] },
   window: { addEventListener: () => {} },
   location: { hash: '#/home' },
   fetch: async (url, options) => {
@@ -19,9 +22,9 @@ const context = {
   },
   clearTimeout, setTimeout: () => 1,
   confirm: () => true,
-  prompt: () => 'Escopo revisado',
 };
 const source = fs.readFileSync(require('node:path').join(__dirname, '../app/static/app.js'), 'utf8');
+assert.doesNotMatch(source, /\bprompt\s*\(/); // navegador de automação não suporta diálogos prompt()
 vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
 (async () => {
   const html = context.projectExecute('project-1', {
@@ -94,6 +97,8 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   const pipeline = context.renderStagePipeline(project.stage_gate);
   assert.match(pipeline, /aria-current="step"/);
   assert.match(ready, /advanceStage\('project-1','mvp'\)/);
+  assert.match(ready, /id="stage-note"/);
+  assert.match(ready, /id="export-dest"/);
   assert.doesNotMatch(ready, /stage-pipeline/); // renderProject a desenha uma única vez
   const post = context.fetch;
   context.fetch = async () => ({ ok: true, json: async () => ({
@@ -103,6 +108,10 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   assert.equal((view.innerHTML.match(/class="stage-pipeline"/g) || []).length, 1);
   context.fetch = post;
   context.renderProject = async () => {};
+  stageNote.value = '   ';
+  await context.advanceStage('project-1', 'mvp');
+  assert.equal(requests.length, 2); // nota em branco não avança
+  stageNote.value = 'Escopo revisado';
   await context.advanceStage('project-1', 'mvp');
   assert.equal(requests[2].url, '/api/projects/project-1/stage');
   assert.deepEqual(JSON.parse(requests[2].options.body), {
@@ -116,11 +125,14 @@ vm.runInNewContext(source.replace(/navigate\(\);\s*$/, ''), context);
   await context.renderRecovery();
   assert.match(view.innerHTML, /Restaurar backup/);
   assert.match(view.innerHTML, /modules\.json/);
-  context.prompt = () => '/tmp/backup-lia';
   context.fetch = async (url, options) => {
     requests.push({ url, options });
     return { ok: true, json: async () => ({ path: '/tmp/backup-lia/jogo' }) };
   };
+  exportDest.value = '   ';
+  await context.exportProject('project-1');
+  assert.equal(requests.length, 3); // destino em branco não exporta
+  exportDest.value = ' /tmp/backup-lia ';
   await context.exportProject('project-1');
   assert.equal(requests[3].url, '/api/projects/project-1/export');
   assert.deepEqual(JSON.parse(requests[3].options.body), { dest_dir: '/tmp/backup-lia' });

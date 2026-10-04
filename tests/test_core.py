@@ -87,7 +87,7 @@ class TestStorage(Base):
     def test_create_index_failure_preserves_nonempty_unindexed_folder(self):
         def concurrent_file(data):
             folder = Path(data["projects"][-1]["location"])
-            (folder / "manual.txt").write_text("não excluir")
+            (folder / "manual.txt").write_text("não excluir", encoding="utf-8")
             raise storage.StorageError("índice indisponível")
         with patch.object(self.store, "_write_index", side_effect=concurrent_file):
             with self.assertRaises(storage.StorageError):
@@ -95,11 +95,11 @@ class TestStorage(Base):
         self.assertEqual(self.store.list_projects(), [])
         remaining = list(self.store.projects_dir.glob("*/manual.txt"))
         self.assertEqual(len(remaining), 1)
-        self.assertEqual(remaining[0].read_text(), "não excluir")
+        self.assertEqual(remaining[0].read_text(encoding="utf-8"), "não excluir")
 
     def test_create_index_failure_preserves_folder_if_index_becomes_unreadable(self):
         def corrupt_index(data):
-            self.store._index_path.write_text("{índice incompleto")
+            self.store._index_path.write_text("{índice incompleto", encoding="utf-8")
             raise storage.StorageError("gravação interrompida")
         with patch.object(self.store, "_write_index", side_effect=corrupt_index):
             with self.assertRaises(storage.StorageError):
@@ -134,7 +134,7 @@ class TestStorage(Base):
             with self.assertRaises(storage.StorageError):
                 self.store.delete_project(e["id"], confirm=True)
         self.assertEqual(self.store.get_entry(e["id"])["name"], "Conservar")
-        self.assertEqual((folder / "GDD.md").read_text(), "# não apagar")
+        self.assertEqual((folder / "GDD.md").read_text(encoding="utf-8"), "# não apagar")
 
     def test_path_traversal_blocked(self):
         e = self.store.create_project("X")
@@ -154,7 +154,7 @@ class TestStorage(Base):
             dest_root = Path(self.tmp) / "exports"
             out = Path(self.store.export_project(e["id"], str(dest_root)))
             self.assertEqual(out.parent, dest_root)
-            self.assertEqual((out / "GDD.md").read_text(), "# jogo")
+            self.assertEqual((out / "GDD.md").read_text(encoding="utf-8"), "# jogo")
             self.assertFalse((self.store.project_path(e["id"]) / "_export_meta.json").exists())
             with self.assertRaises(storage.StorageError):
                 self.store.export_project(e["id"], str(dest_root))
@@ -173,14 +173,14 @@ class TestStorage(Base):
         folder = self.store.project_path(pid)
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "dados.md"
-            target.write_text("segredo externo")
+            target.write_text("segredo externo", encoding="utf-8")
             link = folder / "GDD.md"
             self.symlink_or_skip(link, target)
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(pid, "GDD.md")
             with self.assertRaises(storage.StorageError):
                 self.store.write_doc(pid, "GDD.md", "sobrescrever")
-            self.assertEqual(target.read_text(), "segredo externo")
+            self.assertEqual(target.read_text(encoding="utf-8"), "segredo externo")
             self.assertNotIn("GDD.md", self.store.list_docs(pid))
             issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == "GDD.md")
             self.assertFalse(issue["backup_available"])
@@ -196,12 +196,12 @@ class TestStorage(Base):
         pid = self.store.create_project("Journal")["id"]
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
-            target.write_text("segredo")
+            target.write_text("segredo", encoding="utf-8")
             link = self.store.project_path(pid) / "JOURNAL.md"
             self.symlink_or_skip(link, target)
             with self.assertRaises(storage.StorageError):
                 bootstrap._append_journal(self.store, pid, "registro")
-            self.assertEqual(target.read_text(), "segredo")
+            self.assertEqual(target.read_text(encoding="utf-8"), "segredo")
 
     def test_concurrent_journal_appends_preserve_all_entries_in_one_process(self):
         from concurrent.futures import ThreadPoolExecutor
@@ -230,29 +230,29 @@ class TestStorage(Base):
     def test_index_folder_traversal_cannot_read_or_delete_outside_project(self):
         pid = self.store.create_project("Índice seguro")["id"]
         index_path = self.store.projects_dir / storage.INDEX_FILE
-        original = index_path.read_text()
+        original = index_path.read_text(encoding="utf-8")
         try:
             idx = json.loads(original)
             idx["projects"][0]["folder"] = "../fora"
-            index_path.write_text(json.dumps(idx))
+            index_path.write_text(json.dumps(idx), encoding="utf-8")
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(pid, "GDD.md")
             with self.assertRaises(storage.StorageError):
                 self.store.delete_project(pid, confirm=True)
             self.assertTrue(any(i["name"] == "pasta do projeto" for i in self.store.inspect_storage_issues()))
         finally:
-            index_path.write_text(original)
+            index_path.write_text(original, encoding="utf-8")
         self.assertIsNotNone(self.store.get_entry(pid))
 
     def test_index_cannot_redirect_to_another_project_folder(self):
         first = self.store.create_project("Primeiro")
         second = self.store.create_project("Segundo")
         index_path = self.store.projects_dir / storage.INDEX_FILE
-        original = index_path.read_text()
+        original = index_path.read_text(encoding="utf-8")
         try:
             idx = json.loads(original)
             idx["projects"][0]["folder"] = second["folder"]
-            index_path.write_text(json.dumps(idx))
+            index_path.write_text(json.dumps(idx), encoding="utf-8")
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(first["id"], "GDD.md")
             with self.assertRaises(storage.StorageError):
@@ -260,7 +260,7 @@ class TestStorage(Base):
             self.assertTrue(any(i["project_id"] == first["id"] and i["name"] == "pasta do projeto"
                                 for i in self.store.inspect_storage_issues()))
         finally:
-            index_path.write_text(original)
+            index_path.write_text(original, encoding="utf-8")
         self.assertTrue(self.store.project_path(second["id"]).is_dir())
 
     def test_external_folder_via_symlinked_parent_is_rejected(self):
@@ -273,18 +273,18 @@ class TestStorage(Base):
         except (NotImplementedError, OSError):
             self.skipTest("links simbólicos não disponíveis neste ambiente")
         index_path = self.store.projects_dir / storage.INDEX_FILE
-        original = index_path.read_text()
+        original = index_path.read_text(encoding="utf-8")
         try:
             idx = json.loads(original)
             idx["projects"][0].update(folder=str(alias / "project"), location=str(alias / "project"))
-            index_path.write_text(json.dumps(idx))
+            index_path.write_text(json.dumps(idx), encoding="utf-8")
             with self.assertRaises(storage.StorageError):
                 self.store.read_doc(pid, "GDD.md")
             with self.assertRaises(storage.StorageError):
                 self.store.delete_project(pid, confirm=True)
             self.assertTrue(any(i["name"] == "pasta do projeto" for i in self.store.inspect_storage_issues()))
         finally:
-            index_path.write_text(original)
+            index_path.write_text(original, encoding="utf-8")
         self.assertTrue((real / "project").exists())
 
     def test_markdown_input_types_fail_without_writes(self):
@@ -304,15 +304,15 @@ class TestPersistence(Base):
         pid = e["id"]
         path = self.store.project_path(pid)
         self.assertFalse((path / "meta.json").exists())
-        index = json.loads((self.store.projects_dir / storage.INDEX_FILE).read_text())
+        index = json.loads((self.store.projects_dir / storage.INDEX_FILE).read_text(encoding="utf-8"))
         self.assertEqual(index["version"], storage.INDEX_VERSION)
         self.assertEqual(index["projects"][0]["stage"], "preparation")
         self.store.write_structured(pid, "modules.json", [{"id": "m1"}])
-        self.assertEqual(json.loads((path / "modules.json").read_text()), {
+        self.assertEqual(json.loads((path / "modules.json").read_text(encoding="utf-8")), {
             "schema_version": storage.SCHEMA_VERSION, "data": [{"id": "m1"}],
         })
         self.store.write_structured_global("lia_settings.json", {"mode": "offline"})
-        self.assertEqual(json.loads((self.store.projects_dir / "lia_settings.json").read_text())["data"],
+        self.assertEqual(json.loads((self.store.projects_dir / "lia_settings.json").read_text(encoding="utf-8"))["data"],
                          {"mode": "offline"})
         self.store.update_entry(pid, name="Jogo atualizado")
         from app.lia import stages
@@ -321,17 +321,17 @@ class TestPersistence(Base):
         self.assertEqual(self.store.get_entry(pid)["name"], "Jogo atualizado")
         self.assertEqual(self.store.get_entry(pid)["stage"], "mvp")
         export = Path(self.store.export_project(pid, str(Path(self.tmp) / "export")))
-        self.assertEqual(json.loads((export / "_export_meta.json").read_text())["project"]["stage"], "mvp")
+        self.assertEqual(json.loads((export / "_export_meta.json").read_text(encoding="utf-8"))["project"]["stage"], "mvp")
 
     def test_evidence_v1_read_backup_and_explicit_recovery(self):
         pid = self.store.create_project("Evidência JSON")["id"]
         path = self.store.project_path(pid) / "evidence.json"
         path.write_text("[]", encoding="utf-8")
         self.assertEqual(self.store.read_structured(pid, "evidence.json"), [])
-        self.assertEqual(path.read_text(), "[]")
+        self.assertEqual(path.read_text(encoding="utf-8"), "[]")
         self.store.write_structured(pid, "evidence.json", [{"id": "e1", "path": "teste.txt"}])
-        self.assertEqual(json.loads(path.read_text())["schema_version"], 2)
-        self.assertEqual(json.loads((path.parent / "evidence.json.bak").read_text()), [])
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["schema_version"], 2)
+        self.assertEqual(json.loads((path.parent / "evidence.json.bak").read_text(encoding="utf-8")), [])
         path.write_text("corrompido", encoding="utf-8")
         issue = next(i for i in self.store.inspect_json_issues() if i["name"] == "evidence.json")
         self.assertTrue(issue["backup_available"])
@@ -344,30 +344,30 @@ class TestPersistence(Base):
         path = self.store.project_path(pid)
         (path / "modules.json").write_text('[{"id":"old"}]', encoding="utf-8")
         index = self.store.projects_dir / storage.INDEX_FILE
-        old_index = json.loads(index.read_text())
+        old_index = json.loads(index.read_text(encoding="utf-8"))
         old_index["version"] = 1
         index.write_text(json.dumps(old_index), encoding="utf-8")
         self.assertEqual(self.store.read_structured(pid, "modules.json")[0]["id"], "old")
-        self.assertEqual(json.loads(index.read_text())["version"], 1)
+        self.assertEqual(json.loads(index.read_text(encoding="utf-8"))["version"], 1)
         self.store.write_structured(pid, "modules.json", [{"id": "new"}])
-        self.assertEqual(json.loads(index.read_text())["version"], 2)
+        self.assertEqual(json.loads(index.read_text(encoding="utf-8"))["version"], 2)
         self.assertEqual(self.store.read_structured(pid, "modules.json")[0]["id"], "new")
-        self.assertEqual(json.loads((path / "modules.json.bak").read_text()), [{"id": "old"}])
+        self.assertEqual(json.loads((path / "modules.json.bak").read_text(encoding="utf-8")), [{"id": "old"}])
 
     def test_legacy_global_config_is_upgraded_only_when_written(self):
         settings = self.store.projects_dir / "lia_settings.json"
         settings.write_text('{"mode":"offline"}', encoding="utf-8")
         self.assertEqual(self.store.read_structured_global("lia_settings.json"), {"mode": "offline"})
-        self.assertNotIn("schema_version", json.loads(settings.read_text()))
+        self.assertNotIn("schema_version", json.loads(settings.read_text(encoding="utf-8")))
         self.store.write_structured_global("lia_settings.json", {"mode": "local"})
-        self.assertEqual(json.loads(settings.read_text())["schema_version"], 2)
-        self.assertEqual(json.loads((self.store.projects_dir / "lia_settings.json.bak").read_text()),
+        self.assertEqual(json.loads(settings.read_text(encoding="utf-8"))["schema_version"], 2)
+        self.assertEqual(json.loads((self.store.projects_dir / "lia_settings.json.bak").read_text(encoding="utf-8")),
                          {"mode": "offline"})
 
     def test_future_index_version_is_not_overwritten(self):
         e = self.store.create_project("Jogo")
         index = self.store.projects_dir / storage.INDEX_FILE
-        content = json.loads(index.read_text())
+        content = json.loads(index.read_text(encoding="utf-8"))
         content["version"] = 999
         index.write_text(json.dumps(content), encoding="utf-8")
         with self.assertRaises(storage.StorageError):
@@ -376,7 +376,7 @@ class TestPersistence(Base):
             self.store.recover_json(storage.INDEX_FILE, confirm=True)
         self.assertFalse(next(i for i in self.store.inspect_json_issues()
                               if i["name"] == storage.INDEX_FILE)["backup_available"])
-        self.assertEqual(json.loads(index.read_text())["version"], 999)
+        self.assertEqual(json.loads(index.read_text(encoding="utf-8"))["version"], 999)
 
     def test_corrupt_project_json_blocks_writes_and_can_restore_with_confirmation(self):
         e = self.store.create_project("Jogo")
@@ -393,9 +393,9 @@ class TestPersistence(Base):
         self.assertTrue(issue["backup_available"])
         with self.assertRaises(storage.StorageError):
             self.store.recover_json("decisions.json", pid)
-        self.assertEqual(path.read_text(), "{corrompido")
+        self.assertEqual(path.read_text(encoding="utf-8"), "{corrompido")
         result = self.store.recover_json("decisions.json", pid, confirm=True)
-        self.assertEqual((path.parent / result["preserved"]).read_text(), "{corrompido")
+        self.assertEqual((path.parent / result["preserved"]).read_text(encoding="utf-8"), "{corrompido")
         self.assertEqual(self.store.read_structured(pid, "decisions.json"), [{"topic": "antes"}])
         with self.assertRaises(storage.StorageError):
             self.store.recover_json("decisions.json", pid, confirm=True)
@@ -449,7 +449,7 @@ class TestPersistence(Base):
             self.store.write_structured(e["id"], "modules.json", [])
         with self.assertRaises(storage.StorageError):
             self.store.recover_json("modules.json", e["id"], confirm=True)
-        self.assertEqual(json.loads(external.read_text()), [{"secret": "do not read"}])
+        self.assertEqual(json.loads(external.read_text(encoding="utf-8")), [{"secret": "do not read"}])
 
     def test_future_schema_is_not_silently_downgraded(self):
         e = self.store.create_project("Jogo")
@@ -464,7 +464,7 @@ class TestPersistence(Base):
         self.assertFalse(issue["backup_available"])
         with self.assertRaises(storage.StorageError):
             self.store.recover_json("modules.json", e["id"], confirm=True)
-        self.assertEqual(json.loads(path.read_text())["schema_version"], 999)
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["schema_version"], 999)
 
 
 class TestBootstrap(Base):
@@ -499,16 +499,16 @@ class TestBootstrap(Base):
         folder = self.store.project_path(pid)
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
-            target.write_text("externo")
+            target.write_text("externo", encoding="utf-8")
             self.symlink_or_skip(folder / "GDD.md", target)
             with self.assertRaises(storage.StorageError):
                 bootstrap.run_bootstrap(self.store, pid, {"idea": "Ilhas"})
             self.assertFalse((folder / "PROJECT_BRIEF.md").exists())
-            self.assertEqual(target.read_text(), "externo")
+            self.assertEqual(target.read_text(encoding="utf-8"), "externo")
 
     def test_bootstrap_corrupt_decisions_json_does_not_write_documents(self):
         pid = self.store.create_project("Decisões ilegíveis")["id"]
-        (self.store.project_path(pid) / "decisions.json").write_text("{json quebrado")
+        (self.store.project_path(pid) / "decisions.json").write_text("{json quebrado", encoding="utf-8")
         with self.assertRaises(storage.StorageError):
             bootstrap.run_bootstrap(self.store, pid, {"idea": "Ilhas"})
         self.assertEqual(self.store.list_docs(pid), [])
@@ -701,11 +701,11 @@ class TestDecisions(Base):
                 decisions.save(self.store, pid, bad)
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
-            target.write_text("segredo")
+            target.write_text("segredo", encoding="utf-8")
             self.symlink_or_skip(self.store.project_path(pid) / "DECISIONS.md", target)
             with self.assertRaises(storage.StorageError):
                 decisions.save(self.store, pid, {"topic": "T", "value": "valor"})
-            self.assertEqual(target.read_text(), "segredo")
+            self.assertEqual(target.read_text(encoding="utf-8"), "segredo")
             self.assertFalse((self.store.project_path(pid) / "decisions.json").exists())
 
     def test_manual_markdown_is_not_overwritten_without_explicit_confirmation(self):
@@ -732,14 +732,14 @@ class TestDecisions(Base):
         self.assertTrue(issue["backup_available"])
         path = self.store.project_path(pid) / "decisions.json"
         backup = path.with_name("decisions.json.bak")
-        valid_backup = backup.read_text()
-        backup.write_text(json.dumps({"schema_version": 2, "data": [{"topic": {"não": "texto"}}]}))
+        valid_backup = backup.read_text(encoding="utf-8")
+        backup.write_text(json.dumps({"schema_version": 2, "data": [{"topic": {"não": "texto"}}]}), encoding="utf-8")
         issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == "decisions.json")
         self.assertFalse(issue["backup_available"])
         with self.assertRaises(storage.StorageError):
             self.store.recover_json("decisions.json", pid, confirm=True)
-        self.assertEqual(path.read_text(), json.dumps({"schema_version": 2, "data": [{"topic": ["inválido"]}]}, ensure_ascii=False, indent=2))
-        backup.write_text(valid_backup)
+        self.assertEqual(path.read_text(encoding="utf-8"), json.dumps({"schema_version": 2, "data": [{"topic": ["inválido"]}]}, ensure_ascii=False, indent=2))
+        backup.write_text(valid_backup, encoding="utf-8")
         self.store.recover_json("decisions.json", pid, confirm=True)
         self.assertEqual(decisions.snapshot(self.store, pid)["decisions"][0]["value"], "PC")
 
@@ -778,7 +778,7 @@ class TestSessions(Base):
         for key in ("skill_ids", "mcp_connection_ids", "tool_ids", "effective_permissions",
                     "delivered_context", "evidence_ids", "artifact_paths"):
             self.assertEqual(s[key], [])
-        self.assertNotIn("shell (solicitado)", (folder / sessions.NAME).read_text())
+        self.assertNotIn("shell (solicitado)", (folder / sessions.NAME).read_text(encoding="utf-8"))
         self.assertEqual(sessions.list_sessions(storage.Storage(Path(self.tmp)), pid), [s])
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["validation_status"], "not_run")
         self.assertIn("EXECUTION_NOT_VERIFIED", {i["code"] for i in
@@ -798,7 +798,7 @@ class TestSessions(Base):
         task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
         folder = self.store.project_path(pid)
         history = folder / sessions.NAME
-        history.write_text("{incompleto")
+        history.write_text("{incompleto", encoding="utf-8")
         with self.assertRaises(storage.StorageError):
             self.simulate_after_preview(pid, mod["id"], task["id"])
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
@@ -806,11 +806,11 @@ class TestSessions(Base):
         history.unlink()
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "sessions.json"
-            target.write_text("segredo externo")
+            target.write_text("segredo externo", encoding="utf-8")
             self.symlink_or_skip(history, target)
             with self.assertRaises(storage.StorageError):
                 self.simulate_after_preview(pid, mod["id"], task["id"])
-            self.assertEqual(target.read_text(), "segredo externo")
+            self.assertEqual(target.read_text(encoding="utf-8"), "segredo externo")
         self.assertEqual(planning.get_modules(self.store, pid)[0]["tasks"][0]["execution_status"], "not_run")
 
     def test_session_semantic_corruption_has_no_automatic_recovery(self):
@@ -830,7 +830,7 @@ class TestSessions(Base):
         task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
         original = self.simulate_after_preview(pid, mod["id"], task["id"])["session"]
         path = self.store.project_path(pid) / sessions.NAME
-        path.write_text('{"schema_version": 2, "data": [{"id": "incompleto"}]}')
+        path.write_text('{"schema_version": 2, "data": [{"id": "incompleto"}]}', encoding="utf-8")
         issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == sessions.NAME)
         self.assertTrue(issue["backup_available"])
         with self.assertRaises(storage.StorageError):
@@ -866,7 +866,7 @@ class TestSessions(Base):
         original = self.simulate_after_preview(pid, mod["id"], task["id"])["session"]
         older = {k: v for k, v in original.items() if k != "computer_use_backend_id"}
         path = self.store.project_path(pid) / sessions.NAME
-        path.write_text(json.dumps({"schema_version": 2, "data": [older]}))
+        path.write_text(json.dumps({"schema_version": 2, "data": [older]}), encoding="utf-8")
         self.assertEqual(sessions.list_sessions(self.store, pid), [older])
         self.assertFalse(any(i["name"] == sessions.NAME for i in self.store.inspect_storage_issues()))
         result = self.simulate_after_preview(pid, mod["id"], task["id"])
@@ -1070,13 +1070,13 @@ class TestHandoff(Base):
         handoff_path = self.store.project_path(pid) / "HANDOFF.md"
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
-            target.write_text("segredo")
+            target.write_text("segredo", encoding="utf-8")
             self.symlink_or_skip(handoff_path, target)
             with self.assertRaises(storage.StorageError):
                 handoff.get_saved(self.store, pid)
             with self.assertRaises(storage.StorageError):
                 handoff.save(self.store, pid, m["id"], t["id"], prior["digest"], confirm=True)
-            self.assertEqual(target.read_text(), "segredo")
+            self.assertEqual(target.read_text(encoding="utf-8"), "segredo")
             handoff_path.unlink()
         self.store.write_doc(pid, "HANDOFF.md", "# escrito manualmente")
         state = handoff.get_saved(self.store, pid)
@@ -1092,7 +1092,7 @@ class TestEvidence(Base):
         mod = planning.create_module(self.store, pid, {"name": "M"})
         task = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
         path = self.store.project_path(pid) / "captura.txt"
-        path.write_text("arquivo local")
+        path.write_text("arquivo local", encoding="utf-8")
         data = {"target_ref": "task:" + task["id"], "path": "captura.txt"}
         with self.assertRaises(storage.StorageError):
             evidence.register(self.store, pid, {**data, "verified_result": True})
@@ -1171,14 +1171,14 @@ class TestEvidence(Base):
         t = planning.create_task(self.store, pid, m["id"], {"name": "T"})
         q = qa.add_verification(self.store, pid, {"target_ref": "task:" + t["id"]})
         folder = self.store.project_path(pid)
-        (folder / "captura.txt").write_text("local")
+        (folder / "captura.txt").write_text("local", encoding="utf-8")
         for path in ("../fora.txt", "/tmp/fora.txt", "C:/fora.txt", "..\\fora.txt",
                      "./captura.txt", "captura.txt/", "não-existe.txt", ""):
             with self.assertRaises(storage.StorageError, msg=path):
                 evidence.register(self.store, pid, {"target_ref": "task:" + t["id"], "path": path})
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.txt"
-            target.write_text("segredo")
+            target.write_text("segredo", encoding="utf-8")
             self.symlink_or_skip(folder / "link.txt", target)
             with self.assertRaises(storage.StorageError):
                 evidence.register(self.store, pid, {"target_ref": "task:" + t["id"], "path": "link.txt"})
@@ -1380,25 +1380,25 @@ class TestProvidersEngines(Base):
         self.assertEqual(settings["mode"], "cloud")
         self.assertFalse(settings["keys_present"])
         self.assertFalse(providers.describe_runtime(self.store)["connected"])
-        self.assertNotIn("api_key", (self.store.projects_dir / providers.SETTINGS_FILE).read_text())
+        self.assertNotIn("api_key", (self.store.projects_dir / providers.SETTINGS_FILE).read_text(encoding="utf-8"))
 
     def test_provider_preferences_corruption_is_reported_and_backup_checked(self):
         providers.set_settings(self.store, {"mode": "offline"})
         providers.set_settings(self.store, {"mode": "local"})
         path = self.store.projects_dir / providers.SETTINGS_FILE
         backup = path.with_name(path.name + ".bak")
-        path.write_text(json.dumps({"schema_version": 2, "data": {"mode": "invalid"}}))
+        path.write_text(json.dumps({"schema_version": 2, "data": {"mode": "invalid"}}), encoding="utf-8")
         issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == providers.SETTINGS_FILE)
         self.assertTrue(issue["backup_available"])
         with self.assertRaises(storage.StorageError):
             providers.get_settings(self.store)
-        valid_backup = backup.read_text()
-        backup.write_text(json.dumps({"schema_version": 2, "data": {"keys_present": True}}))
+        valid_backup = backup.read_text(encoding="utf-8")
+        backup.write_text(json.dumps({"schema_version": 2, "data": {"keys_present": True}}), encoding="utf-8")
         issue = next(i for i in self.store.inspect_storage_issues() if i["name"] == providers.SETTINGS_FILE)
         self.assertFalse(issue["backup_available"])
         with self.assertRaises(storage.StorageError):
             self.store.recover_json(providers.SETTINGS_FILE, confirm=True)
-        backup.write_text(valid_backup)
+        backup.write_text(valid_backup, encoding="utf-8")
         self.store.recover_json(providers.SETTINGS_FILE, confirm=True)
         self.assertEqual(providers.get_settings(self.store)["mode"], "offline")
 
@@ -1567,7 +1567,7 @@ class TestHttpApi(Base):
         mod = planning.create_module(self.store, pid, {"name": "M"})
         t = planning.create_task(self.store, pid, mod["id"], {"name": "T"})
         folder = self.store.project_path(pid)
-        (folder / "captura.txt").write_text("conteúdo privado do Dev")
+        (folder / "captura.txt").write_text("conteúdo privado do Dev", encoding="utf-8")
         url = self.base + f"/api/projects/{pid}/evidence"
         with urlopen(url) as response:
             self.assertEqual(json.load(response)["evidence"], [])
@@ -1641,7 +1641,7 @@ class TestHttpApi(Base):
                                                   "criteria": "controle", "tool": "teste futuro",
                                                   "result": "planejado"})
         folder = self.store.project_path(pid)
-        (folder / "captura.txt").write_text("metadados locais, não teste executado")
+        (folder / "captura.txt").write_text("metadados locais, não teste executado", encoding="utf-8")
         evidence = api("POST", base + "/evidence", {"target_ref": "task:" + task["id"],
                                                       "qa_id": check["id"], "path": "captura.txt"})
         self.assertFalse(evidence["verified_result"])
@@ -1704,7 +1704,7 @@ class TestHttpApi(Base):
         self.assertEqual(planning.get_modules(self.store, pid), [])
         with tempfile.TemporaryDirectory() as outside:
             target = Path(outside) / "fora.md"
-            target.write_text("segredo fora do projeto")
+            target.write_text("segredo fora do projeto", encoding="utf-8")
             self.symlink_or_skip(self.store.project_path(pid) / "GDD.md", target)
             with self.assertRaises(HTTPError) as error:
                 urlopen(base + "/docs/GDD.md")
@@ -1716,7 +1716,7 @@ class TestHttpApi(Base):
             with urlopen(self.base + "/api/storage/health") as response:
                 issue = next(i for i in json.load(response)["issues"] if i["name"] == "GDD.md")
             self.assertFalse(issue["backup_available"])
-            self.assertEqual(target.read_text(), "segredo fora do projeto")
+            self.assertEqual(target.read_text(encoding="utf-8"), "segredo fora do projeto")
 
     def test_handoff_api_preview_requires_current_digest_and_confirmation(self):
         from urllib.error import HTTPError
@@ -1773,7 +1773,7 @@ class TestHttpApi(Base):
             prefs = json.load(response)
         self.assertFalse(prefs["keys_present"])
         self.assertFalse(providers.describe_runtime(self.store)["connected"])
-        self.assertNotIn("segredo", (self.store.projects_dir / providers.SETTINGS_FILE).read_text())
+        self.assertNotIn("segredo", (self.store.projects_dir / providers.SETTINGS_FILE).read_text(encoding="utf-8"))
 
     def test_unreal_profile_is_selectable_but_not_an_engine_adapter(self):
         from urllib.error import HTTPError
@@ -1926,7 +1926,7 @@ class TestHttpApi(Base):
         with urlopen(export({"dest_dir": str(Path(self.tmp) / "backup")})) as response:
             destination = Path(json.load(response)["path"])
         self.assertEqual(destination.parent, Path(self.tmp) / "backup")
-        self.assertEqual(json.loads((destination / "_export_meta.json").read_text())["project"]["id"], e["id"])
+        self.assertEqual(json.loads((destination / "_export_meta.json").read_text(encoding="utf-8"))["project"]["id"], e["id"])
         self.assertFalse((self.store.project_path(e["id"]) / "_export_meta.json").exists())
 
     def test_storage_recovery_api_requires_confirmation(self):

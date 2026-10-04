@@ -25,8 +25,8 @@ Abra `http://127.0.0.1:8080`. Tela inicial mostra projetos recentes, estado e pr
 ## Avanço de etapa (explícito)
 Na **Visão geral**, a pipeline mostra a etapa do jogo e os bloqueios do gate.
 A Etapa 0 exige documentos e uma ideia descrita; só depois de revisá-los o Dev
-pode confirmar o avanço ao MVP e registrar o motivo. **Gerar documentos não
-avança automaticamente.** Execução simulada e QA apenas registrado não comprovam
+pode preencher **Motivo da aprovação do Dev** na Visão geral e confirmar o
+avanço ao MVP. **Gerar documentos não avança automaticamente.** Execução simulada e QA apenas registrado não comprovam
 um MVP jogável: a passagem para Produção continuará bloqueada até existir
 execução real com validação e aceite. A área chamada `Plano` é atividade, não etapa.
 
@@ -99,8 +99,8 @@ Na barra superior ou na Home, escolha **Skills** para consultar as quatro instru
 locais. O workspace é separado do projeto; não inicia um agente nem modifica arquivos.
 
 ## Integridade e exportação
-Na Visão geral, **Exportar projeto** pede uma pasta absoluta **no computador que
-executa o Studio**. A área **Dados** mostra JSONs danificados e permite restaurar
+Na Visão geral, preencha **Pasta de destino absoluta** e clique em **Exportar
+projeto**; a pasta fica **no computador que executa o Studio**. A área **Dados** mostra JSONs danificados e permite restaurar
 um backup local anterior com confirmação; o arquivo danificado é preservado. Em
 preview remoto, o destino de exportação é o servidor, não seu navegador.
 
