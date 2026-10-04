@@ -1,7 +1,7 @@
 # Testes automatizados e registros de desenvolvimento
 
 > Os testes abaixo são da implementação, **não** de aceitação pelo usuário.
-> O aplicativo ainda precisa de aceite do Dev e reteste em Windows após as correções. Um primeiro teste parcial pelo Copilot no Windows encontrou falhas; veja o registro abaixo.
+> O reteste pelo Copilot no Windows passou nos fluxos antes bloqueados e na suíte disponível (11 testes de symlink pulados). Ainda falta aceite do Dev; veja os registros abaixo.
 
 Ambiente: Linux (sandbox), Python 3.x, sem dependências de terceiros. Data: 2026-09-29.
 
@@ -122,16 +122,30 @@ mas **não aprova a exportação visual**; a aprovação de etapa também requer
 novo teste pela interface. Persistência do estado Release após reinício foi
 relatada, sem validar o passo 9 completo. Não houve aceite humano.
 
-### Correções locais e reteste pendente — 2026-10-03
+### Correções e verificação Linux — 2026-10-03
 Os dois `prompt()` foram substituídos por campos visíveis para nota de avanço
 e pasta de exportação, validados antes da chamada de API. A suíte
 `tests/test_core.py` usa `encoding="utf-8"` explicitamente em suas leituras e
 escritas de texto, para não depender de cp1252 no Windows. Após as mudanças,
 `python verify_alpha.py` passou **103 testes Python**, regressão JS e checagens
-de sintaxe no **Linux**. Isto confirma o comportamento local, **não** corrige
-retroativamente o relatório anterior nem valida Windows/navegador. Solicitar
-nova execução de `py verify_alpha.py` no Windows e dos passos 4 e 9 pela UI,
-registrando evidências, pulados e demais falhas. A Alpha permanece não aceita.
+de sintaxe no **Linux**. Esse resultado não corrige retroativamente o
+relatório anterior nem constitui validação no Windows.
+
+### Reteste pelo Copilot no Windows — 2026-10-03
+No commit `b5e4c57`, `py verify_alpha.py` terminou com **exit 0**: 103 testes
+Python, **0 falhas, 0 erros, 11 pulados** (`OK (skipped=11)`), regressão JS e
+checagens de sintaxe executadas. Todos os pulados dependem de symlinks sem
+privilégio no ambiente Windows; **não contam como aprovados**. O Copilot também
+retomou **pela interface** os passos antes bloqueados: no passo 4, preencheu a
+nota, confirmou o avanço para MVP e conferiu o histórico após reinício; no
+passo 9, preencheu o destino visível, exportou pelo botão da UI, conferiu
+arquivos (incluindo Session simulada e Handoff) e reabriu o projeto. Não usou a
+API como substituto para esses fluxos visuais.
+
+Relatório detalhado: [ALPHA-EXECUCAO-WINDOWS-2026-10-03.md](ALPHA-EXECUCAO-WINDOWS-2026-10-03.md).
+Saída integral: [ALPHA-VERIFY-OUTPUT-WINDOWS-2026-10-03.txt](ALPHA-VERIFY-OUTPUT-WINDOWS-2026-10-03.txt).
+Isso fornece evidência de teste automatizado no Windows, **não** de aceite
+humano, execução real, cobertura dos casos pulados ou aplicativo `.exe`.
 
 ## 2. Smoke técnico anterior de API (via curl; não é teste de uso/aceite)
 Fluxo registrado anteriormente pelo desenvolvimento: criar projeto → bootstrap com ideia incompleta →
@@ -141,7 +155,7 @@ criar módulo + tarefa → `POST .../execute` retorna `simulated=true` → regis
 → `GET /release` retorna `published=false` com 6 itens de checklist → `POST /api/example`
 cria projeto de exemplo → `/` serve o HTML da interface. **Todos os passos OK.**
 
-## 3. Roteiro de teste de uso (aceite pelo Dev pendente; reteste pelo Copilot pendente)
+## 3. Roteiro de teste de uso (aceite pelo Dev pendente; reteste pelo Copilot registrado acima)
 - Abrir `http://localhost:8080` → tela inicial com botões Novo / Exemplo.
 - "Carregar exemplo demonstrativo" popula projeto com docs, módulo e tarefa.
 - Navegar pelas abas (Visão geral, Etapa 0, Documentos, Plano, Execução, QA, Release,
@@ -158,14 +172,13 @@ cria projeto de exemplo → `/` serve o HTML da interface. **Todos os passos OK.
   e indisponibilidade aparecem, mas não alteram aprovação/execução.
 - Aba Configurações lista provedores com banner offline/simulado.
 
-A lista acima permanece como roteiro para aceite pelo Dev; consulte o relato
-parcial do Copilot e as pendências de reteste. Nenhuma linha desta lista é
+A lista acima permanece como roteiro para aceite pelo Dev; consulte a execução
+e o reteste pelo Copilot registrados acima. Nenhuma linha desta lista é
 aprovação humana.
 
 ## O que NÃO foi testado ou concluído
 - Empacotamento/execução como `.exe` Windows.
-- Reteste Windows da suíte após a correção de encoding; casos de symlink pulados
-  não tiveram cobertura naquela execução.
-- Reteste no navegador da aprovação de etapa e da exportação pelos campos visíveis.
+- Os 11 casos de symlink pulados no reteste Windows (faltou privilégio para
+  criar links); passaram no Linux, mas não há cobertura Windows desses casos.
 - Integração real com engine ou provedor de IA (fora do escopo da Alpha; tudo simulado).
 - Teste de uso/aceite pelo Dev.

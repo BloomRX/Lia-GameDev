@@ -1,11 +1,11 @@
 # Lia Studio — Alpha offline: roteiro de teste de uso
 
-> **Situação (2026-10-03): teste parcial pelo Copilot no Windows, com falhas e passos bloqueados; reteste da correção pendente. Alpha não aceita.**
-> O smoke automatizado roda em diretórios temporários. O relato da primeira execução está em [testes-resultados.md](testes-resultados.md#primeira-execução-pelo-copilot-no-windows--2026-10-03). A tabela abaixo é um modelo para **novo** teste, não um registro de aprovação pelo Dev.
+> **Situação (2026-10-03): reteste do Copilot no Windows concluiu os passos 4 e 9 pela interface; suíte OK com 11 casos de symlink pulados. Aceite do Dev pendente.**
+> O smoke automatizado roda em diretórios temporários. Consulte o [relatório de execução e reteste](ALPHA-EXECUCAO-WINDOWS-2026-10-03.md) e a [síntese dos resultados](testes-resultados.md). A tabela abaixo permanece como modelo para o **aceite do Dev**, não como registro de aprovação humana.
 
 ## 1. Limite desta Alpha
 
-O Studio funciona isolado do Lia Project. Projeto, documentos, planejamento, gates, QA manual, evidência local, histórico de Session simulada, handoff e exportação são fluxos locais. A execução da tarefa **não escreve código de jogo**, não invoca Agent/Provider/Engine/MCP/Computer Use e não valida resultado. Multi-Agent é contrato opcional, **desligado** na Alpha. Preferência `cloud` é apenas preferência offline; não conecta nem gera gasto. `.exe`/janela desktop própria e compatibilidade Windows ainda não foram produzidos/verificados.
+O Studio funciona isolado do Lia Project. Projeto, documentos, planejamento, gates, QA manual, evidência local, histórico de Session simulada, handoff e exportação são fluxos locais. A execução da tarefa **não escreve código de jogo**, não invoca Agent/Provider/Engine/MCP/Computer Use e não valida resultado. Multi-Agent é contrato opcional, **desligado** na Alpha. Preferência `cloud` é apenas preferência offline; não conecta nem gera gasto. `.exe`/janela desktop própria ainda não foram produzidos. A aplicação local foi testada no navegador Windows; a suíte Windows teve 11 testes de symlink pulados.
 
 ## 2. Preparação
 
